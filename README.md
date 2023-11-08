@@ -1,8 +1,6 @@
 # P5 Canvas Tree
 
-
-
-### A structured OOP style for writing P5.js scripts.
+### A structured OOP style for writing P5.js scripts.
 
 *Note: this is just a wrapper around ordinary P5.js, so under the hood P5 is still actually rendering to the html canvas element – see the `P5Base` class. This is just an abstraction on top of P5 to keep your project well structured with inheritance.*
 
