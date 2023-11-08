@@ -33,9 +33,13 @@ Further every `Obj` object instantiates the following methods:
 
 The `id` attributes are of the form  `#-0-1-2`, which uniquely defines where the `Obj` object sits in the Object tree. Each integer is the objects index in the `children` array of the `parent`. The `#` is the root of the tree, see `Base` below.
 
+<<<<<<< HEAD
 Users are encouraged to implement other classes that extend `Obj` in the `objects.js` file  – currently `Vertex`, `Text` and  `Polygon` have been implemented. These can then be instantiated in `setup` of `Canvas` (see below) to add these objects to the Object tree.
 
 `Obj` is defined in the `core.js` file.
+=======
+Users are encouraged to implement other classes that extend `Obj`  – currently `Vertex`, `Text` and  `Polygon` have been implemented. These can then be instantiated in `setup` of `Canvas` (see below) to add these objects to the Object tree.
+>>>>>>> main
 
 ### The `Base` and `P5Base` classes
 
@@ -51,9 +55,15 @@ Additionally the `Base` object initialises `id` and `parent` of `#` since it is 
 
 `Base` and `P5base` are defined in the `core.js` file.
 
+<<<<<<< HEAD
 ### The `Canvas` class
 
 The `Canvas` class extends `P5Base`. The `setup` and  `draw` methods of  `Canvas` are the methods a programmer using `P5-Canvas-Tree` can use to create their own Object tree and draw it to the canvas. `setup` is where the top level of the Object tree is defined, and the `draw` method is how to draw the objects to the screen. Note leaving ` super.draw(this)` at the bottom of the `draw` method by default traverses the Object tree in a Depth-First-Search manner and draws all the Objects to the canvas (using each `Obj` draw method).
+=======
+The `Canvas` class extends `P5Base`. The `setup` and  `draw` methods of  `Canvas` are the methods a programmer using `P5-Canvas-Tree` can use to create their own Object tree and draw it to the canvas. `setup` is where the top level of the Object tree is defined, and the `draw` method is how to draw the objects to the screen. Note leaving ` super.draw(this)` at the bottom of the `draw` method by default traverses the Object tree in a Depth-First-Search manner and draws all the Objects to the canvas (using each `Obj` draw method).
+
+The example that I've created includes a search for an object by id after a delay of 2 seconds. This is done in the `draw` method of the `Canvas` class. If the object is found, I then change some properties of the object – and this is reflected on the page.
+>>>>>>> main
 
 The example that I've created includes a search for an object by id after a delay of 2 seconds. This is done in the `draw` method of the `Canvas` class. If the object is found, I then change some properties of the object – and this is reflected on the page.
 
