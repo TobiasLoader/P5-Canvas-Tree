@@ -106,16 +106,16 @@ class Obj {
       this.properties[name] = value;
     }
   }
-  setProperty(name,value){
+  set(name,update){
     // for writing to an existing property
     if (name in this.properties) {
-      this.properties[name] = value;
+      this.properties[name] = update(this.properties[name]);
       const rebuildlist = this.listners[name];
       for (var obj of rebuildlist){
         obj.rebuild();
       }
     } else {
-      if (name == '_iter') this.parent.setProperty('_iter',value);
+      if (name == '_iter') this.parent.set('_iter',update);
       else console.log("Illegal setting")
     }
   }
@@ -153,6 +153,7 @@ class Obj {
   rebuild(){
     console.log("Rebuild",this.id)
     this.buildWrapper();
+    this.redraw();
   }
   freeze(){
     this.frozen = true;
@@ -165,7 +166,6 @@ class Obj {
   setup(){
     const parentdim = this.getProperty(this,'dim');
     const dim = {w:this.rdim.w*parentdim.w,h:this.rdim.h*parentdim.h};
-    console.log(this.id);
     this.addProperty('dim',dim);
     this.img.setup(this,0,0);
   }
@@ -174,11 +174,14 @@ class Obj {
     this.postSetup();
   }
   postSetup(){
-    console.log('post setup')
+    // console.log('post setup')
   }
   draw(){
     console.log("Draw Object to Canvas",this.id);
     this.img.draw();
+  }
+  redraw(){
+    this.parent.redraw();
   }
 }
 
@@ -230,10 +233,14 @@ class P5Base extends Base {
   constructor(w,h){
     super();
     this.addProperty('dim',{w:w,h:h});
-    this.addProperty('_iter',0);
     this._W = w;
     this._H = h;
     this.traversal = [];
+    this._redraw = true;
+  }
+  
+  redraw(){
+    this._redraw = true;
   }
   
   computedraworder(){
@@ -263,7 +270,6 @@ class P5Base extends Base {
   buildWrapper(){
     super.buildWrapper();
     // then build on traversal
-    console.log('builllld',this.traversal.length)
     for (var el of this.traversal){
       el.buildWrapper();
     }
@@ -275,10 +281,18 @@ class P5Base extends Base {
     this.buildWrapper();
   }
   
+  effects(){
+    // things changing dynamically
+  }
+  
   draw(){
-    super.draw();
-    for (var el of this.traversal){
-      el.draw();
+    if (this._redraw) {
+      super.draw();
+      for (var el of this.traversal){
+        el.draw();
+      }
+      this._redraw = false;
     }
+    this.effects();
   }
 }
