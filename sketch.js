@@ -14,14 +14,13 @@ class Canvas extends P5Base {
     ]);
   }
 
-  build(){
-    this.img.background(230,230,230);
+  build(img){
+    img.background(230,230,230);
   }  
 
   effects(){
     // effect in the draw function - using search inherited from the Base class
-    if (millis()>2000 && !this.get('haveSearched')){
-      this.set('haveSearched',() => true)
+    if (millis()>2000 && millis()<3000){
       this.defaultSearch('#-0',(id,obj)=>{
         obj.set('coords',(coords)=>{
           coords[2].x = 0.25;
@@ -38,9 +37,9 @@ class Canvas extends P5Base {
 // p5 setup and draw below + instantiation of the Canvas class
 
 let canvas;
-function setup() {
+async function setup() {
   canvas = new Canvas(800,800);
-  canvas.init();
+  await canvas.init();
   console.log(canvas);
 }
 

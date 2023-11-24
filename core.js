@@ -1,79 +1,3 @@
-class GraphicsImg {
-  constructor(){
-    this.object = null;
-    this.built = false;
-    this.building = false;
-    this.graphics = null;
-    this.dim = {w:0,h:0};
-    this.x = 0;
-    this.y = 0;
-  }
-  
-  updatex(x){
-    this.x = x;
-  }
-  updatey(y){
-    this.y = y;
-  }
-  update(x,y){
-    if (x!=null) this.updatex(x);
-    if (y!=null) this.updatey(y);
-  }
-  
-  startbuild(){
-    this.graphics.clear();
-    this.built = false;
-    this.building = true;
-  }
-  
-  endbuild(){
-    this.built = true;
-    this.building = false;
-  }
-  
-  isbuilt() {
-    return this.built;
-  }
-  
-  background(r,g,b){
-    if (this.building) this.graphics.background(r,g,b);
-  }
-  text(txt,x,y){
-    if (this.building) this.graphics.text(txt,x*this.dim.w,y*this.dim.h);
-  }
-  vertex(x,y){
-    if (this.building) this.graphics.vertex(x*this.dim.w,y*this.dim.h);
-  }
-  point(x,y){
-    if (this.building) this.graphics.point(x*this.dim.w,y*this.dim.h);
-  }
-    
-  fill(r,g,b){ this.graphics.fill(r,g,b); }
-  strokeWeight(n){ this.graphics.strokeWeight(n); }
-  beginShape(){ this.graphics.beginShape(); }
-  endShape(param){ this.graphics.endShape(param); }
-  textFont(name,size){ this.graphics.textFont(name,size); }
-  
-  get(object, name){
-    return object.getProperty(object,name);
-  }
-  
-  setup(object,x,y){
-    this.object = object;
-    this.dim = this.get(object,'dim')
-    this.x = x;
-    this.y = y;
-    if (this.dim != null) {
-      this.graphics = createGraphics(this.dim.w,this.dim.h);
-      this.endbuild();
-    }
-  }
-  
-  draw(){
-    if (this.isbuilt()) image(this.graphics,this.x,this.y);
-  }
-}
-
 class Obj {
   constructor(rw,rh){
     this.id = "";
@@ -81,7 +5,7 @@ class Obj {
     this.children = [];
     this.properties = {};
     this.listners = {};
-    this.frozen = false;
+    this.buildOn = this;
     this.img = new GraphicsImg();
     this.rdim = {w:1,h:1};
     if (rw!=null) this.rdim.w = rw;
@@ -106,17 +30,20 @@ class Obj {
       this.properties[name] = value;
     }
   }
-  set(name,update){
+  async set(name,update){
     // for writing to an existing property
     if (name in this.properties) {
-      this.properties[name] = update(this.properties[name]);
-      const rebuildlist = this.listners[name];
-      for (var obj of rebuildlist){
-        obj.rebuild();
+      const oldValue = JSON.stringify(this.properties[name])
+      const newValue = update(this.properties[name]);
+      if (oldValue !== JSON.stringify(newValue)){
+        this.properties[name] = newValue;
+        const rebuildlist = this.listners[name];
+        for (var obj of rebuildlist){
+          await obj.rebuild();
+        }
       }
     } else {
-      if (name == '_iter') this.parent.set('_iter',update);
-      else console.log("Illegal setting")
+      console.log("Illegal setting")
     }
   }
   getProperty(fromobj,name){
@@ -142,46 +69,60 @@ class Obj {
       this.addChild(obj);
     }
   }
-  build(){
+  build(img){
     console.log("Build the Object",this.id)
   }
-  buildWrapper(){
-    this.img.startbuild();
-    this.build();
-    this.img.endbuild();
+  async buildWrapper(){
+    if (this.id==this.buildOn.id) this.img.startbuild();
+    this.buildOn.img.resumebuild();
+    this.build(this.buildOn.img);
+    // inefficient we are building new bitmap for every
+    // node in subtree of frozen element.
+    // --> should only call once when last child element built
+    await this.buildOn.img.endbuild();
   }
-  rebuild(){
+  async rebuild(){
     console.log("Rebuild",this.id)
-    this.buildWrapper();
-    this.redraw();
+    await this.buildWrapper();
+    this.redrawBubble();
+  }
+  freezeTo(el){
+    // this.frozen = true;
+    this.buildOn = el;
+    for (var obj of this.children){
+      obj.freezeTo(el);
+    }
   }
   freeze(){
-    this.frozen = true;
-    //this.img
+    this.freezeTo(this);
+    // this.frozen = false;
   }
   unfreeze(){
-    this.frozen = false;
+    // this.frozen = false;
     // this.build(canvas);
   }
-  setup(){
+  // isFrozen(){
+  //   return this.frozen;
+  // }
+  preSetup(){
     const parentdim = this.getProperty(this,'dim');
     const dim = {w:this.rdim.w*parentdim.w,h:this.rdim.h*parentdim.h};
     this.addProperty('dim',dim);
     this.img.setup(this,0,0);
   }
+  setup(){}
+  postSetup(){}
   setupWrapper(){
+    this.preSetup();
     this.setup();
     this.postSetup();
   }
-  postSetup(){
-    // console.log('post setup')
-  }
-  draw(){
+  draw(ctx){
     console.log("Draw Object to Canvas",this.id);
-    this.img.draw();
+    this.img.draw(ctx);
   }
-  redraw(){
-    this.parent.redraw();
+  redrawBubble(){
+    this.parent.redrawBubble();
   }
 }
 
@@ -236,11 +177,12 @@ class P5Base extends Base {
     this._W = w;
     this._H = h;
     this.traversal = [];
-    this._redraw = true;
+    this._redrawBubble = true;
+    this._context = null;
   }
   
-  redraw(){
-    this._redraw = true;
+  redrawBubble(){
+    this._redrawBubble = true;
   }
   
   computedraworder(){
@@ -252,33 +194,31 @@ class P5Base extends Base {
     while (!drawqueue.isEmpty()){
       const el = drawqueue.dequeue();
       this.traversal.push(el);
-      for (var obj of el.children){
-        if (!obj.frozen) drawqueue.enqueue(obj);
-      }
+      for (var obj of el.children) drawqueue.enqueue(obj);
     }
   }
   
   setup(){
     createCanvas(this._W, this._H);
-    super.setup();
+    this._context = document.getElementById('defaultCanvas0').getContext('2d');
   }
   
   postSetup(){
     this.computedraworder();
   }
   
-  buildWrapper(){
-    super.buildWrapper();
+  async buildWrapper(){
+    // build this Canvas img first
+    await super.buildWrapper();
     // then build on traversal
     for (var el of this.traversal){
-      el.buildWrapper();
+      await el.buildWrapper();
     }
-    // this.img.background(0,0,0);
   }
   
-  init(){
+  async init(){
     this.setupWrapper();
-    this.buildWrapper();
+    await this.buildWrapper();
   }
   
   effects(){
@@ -286,13 +226,15 @@ class P5Base extends Base {
   }
   
   draw(){
-    if (this._redraw) {
-      super.draw();
-      for (var el of this.traversal){
-        el.draw();
+    if (this._context!=null){
+      if (this._redrawBubble) {
+        super.draw(this._context);
+        for (var el of this.traversal){
+          if (el.id==el.buildOn.id) el.draw(this._context);
+        }
+        this._redrawBubble = false;
       }
-      this._redraw = false;
+      this.effects();
     }
-    this.effects();
   }
 }

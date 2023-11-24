@@ -4,9 +4,9 @@ class Vertex extends Obj {
     this.addProperty('x', x);
     this.addProperty('y', y);
   }
-  build(){
-    this.img.strokeWeight(10);
-    this.img.point(this.get('x'),this.get('y'));
+  build(img){
+    img.strokeWeight(10);
+    img.point(this.get('x'),this.get('y'));
   }
 }
 
@@ -17,9 +17,9 @@ class Text extends Obj {
     this.addProperty('x', x);
     this.addProperty('y', y);
   }
-  build(){
-    this.img.textFont('Inconsolata',20);
-    this.img.text(this.get('txt'),this.get('x'),this.get('y'));
+  build(img){
+    img.textFont('Inconsolata',20);
+    img.text(this.get('txt'),this.get('x'),this.get('y'));
   }
 }
 
@@ -28,9 +28,10 @@ class PolygonVertex extends Obj {
     super(rw,rh);
     this.addProperty('index', index);
   }
-  build(){
-    this.img.strokeWeight(10);
-    this.img.point(this.get('coords')[this.get('index')].x,this.get('coords')[this.get('index')].y);
+  build(img){
+    img.strokeWeight(10);
+    const vertexcoords = this.get('coords')[this.get('index')];
+    img.point(vertexcoords.x,vertexcoords.y);
   }
 }
 
@@ -38,23 +39,22 @@ class Polygon extends Obj {
   constructor(coords,rw,rh){
     super(rw,rh);
     this.addProperty('coords', coords);
-    // this.freeze();
   }
   
   setup(){
-    super.setup();
     for (var i=0; i<this.get('coords').length; i+=1){
       this.addChild(new PolygonVertex(i));
     }
+    this.freeze();
   }
   
-  build(){
-    this.img.strokeWeight(1);
-    this.img.fill(255,255,0);
-    this.img.beginShape();
+  build(img){
+    img.strokeWeight(1);
+    img.fill(255,255,0);
+    img.beginShape();
     for (let coord of this.get('coords')) {
-      this.img.vertex(coord.x, coord.y);
+      img.vertex(coord.x, coord.y);
     }
-    this.img.endShape(CLOSE);
+    img.endShape(CLOSE);
   }
 }
