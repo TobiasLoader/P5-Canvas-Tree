@@ -1,0 +1,4 @@
+- have listeners in frozen subtree bubble up to head of frozen subtree
+- implement listeners for defaults properties
+- build positional functions such as center() etc..
+- construct larger demo with more objects

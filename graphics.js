@@ -26,7 +26,6 @@ class GraphicsImg {
   }
   
   async endbuild(){
-		console.log(this.object.id,'endbuild')
 		this.built = true;
 		this.building = false;
 		this.bitmap = await createImageBitmap(this.graphics.elt);
@@ -37,7 +36,6 @@ class GraphicsImg {
   }
   
   background(r,g,b){
-		console.log(this.abspos,'bg',r,g,b,this.building)
 		if (this.building) this.graphics.background(r,g,b);
   }
   text(txt,x,y){

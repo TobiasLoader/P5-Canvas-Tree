@@ -11,10 +11,9 @@ class Canvas extends P5Base {
       new Text('Hello',0.35,0.2),
       new Text('In 2 seconds something will happen...',0.15,0.7),
       new Card('yupp',[{x:0.4,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.1}],0.4,0.7,{
-				x:0.3,y:0.3,w:0.3,h:0.3
+				x:0.3,y:0.3,w:0.3,h:0.3,'ratio':'fixed'
 			})
     ]);
-    // card.img.update(1, 1);
     // this.freeze();
   }
 
@@ -42,9 +41,10 @@ class Canvas extends P5Base {
 
 let canvas;
 async function setup() {
-  canvas = new Canvas(800,800);
-  await canvas.init();
+  canvas = new Canvas();
+  await canvas.init(innerWidth,innerHeight);
   console.log(canvas);
+	canvas.readLog();
 }
 
 function draw() {

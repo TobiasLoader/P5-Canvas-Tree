@@ -1,5 +1,5 @@
 class Obj {
-  constructor({x=0,y=0,w=1,h=1}={}){
+  constructor({x=0,y=0,w=1,h=1,ratio='variable'}={}){
     this.id = "";
     this.parent = null;
     this.children = [];
@@ -19,7 +19,8 @@ class Obj {
 				y:0,
 				w:0,
 				h:0
-			}
+			},
+			'ratio':ratio
     }
   }
   setId(id){
@@ -43,25 +44,28 @@ class Obj {
   }
   async set(name,update){
     // for writing to an existing property
-    if (name in this.properties) {
-      const oldValue = JSON.stringify(this.properties[name])
-      const newValue = update(this.properties[name]);
-      if (oldValue !== JSON.stringify(newValue)){
-        this.properties[name] = newValue;
-        const rebuildlist = this.listners[name];
-        for (var obj of rebuildlist){
-          await obj.rebuild();
-        }
-      }
-    } else if (name in this.defaults){
-      console.log("---- Setting a default property",this.id,name)
-    } else {
+		if (name in this.defaults){
+			this.log("--- Setting a default property",this.id,name)
+			this.defaults[name] = update(this.defaults[name]);
+		} else if (name in this.properties) {
+			const oldValue = JSON.stringify(this.properties[name])
+			const newValue = update(this.properties[name]);
+			if (oldValue !== JSON.stringify(newValue)){
+				this.properties[name] = newValue;
+				const rebuildlist = this.listners[name];
+				for (var obj of rebuildlist){
+					await obj.rebuild();
+				}
+			}
+		} else {
       console.log("Illegal setting")
     }
   }
 	getPropertyBase(fromobj,name){
+		// first check defaults
+		// then check properties
 		// if property can't be found search parents properties
-		// properties are inherited
+		// => properties are inherited
 		if (name in this.defaults) {
 			return this.defaults[name];
 		}
@@ -112,44 +116,36 @@ class Obj {
     await this.buildWrapper();
     this.redrawBubble();
   }
-  // freezeTo(el){
-  //   // this.frozen = true;
-  //   this.buildOn = el;
-  //   for (var obj of this.children){
-  //     obj.freezeTo(el);
-  //   }
-  // }
   freeze(){
     this.getFreezer().freeze();
-    // this.freezeTo(this);
-    // this.frozen = false;
   }
   unfreeze(){
     this.getFreezer().unfreeze();
-    // this.frozen = false;
-    // this.build(canvas);
   }
-  // isFrozen(){
-  //   return this.frozen;
-  // }
+	setAbsPos(){
+		let parentpos = this.getParent().get('abspos');
+		let relpos = this.get('relpos');
+		let absx = parentpos.x+relpos.x*parentpos.w;
+		let absy = parentpos.y+relpos.y*parentpos.h;
+		let aspectratio = this.get('ratio');
+		let absw = relpos.w*parentpos.w;
+		let absh = relpos.h*parentpos.h;
+		if (aspectratio=='fixed') {
+			absw = min(absw,absh);
+			absh = min(absw,absh);
+		}
+		const abspos = {
+			x: absx,
+			y: absy,
+			w: absw,
+			h: absh,
+		}
+		this.set('abspos',()=>abspos);
+	}
   preSetup(){
-		// console.log(this);
-    // const parentpos = this.getProperty(this,'pos');
-    // const pos = {
-    //   w:this.defaults.w*parentpos.w,
-    //   h:this.rdim.h*parentpos.h};
-    // this.addProperty('dim',dim);
     if (this.getParent()==null) this.img.setup(this);
 		else {
-			const parentpos = this.getParent().get('abspos');
-			const relpos = this.get('relpos');
-			const abspos = {
-				x: parentpos.x+relpos.x*parentpos.w,
-				y: parentpos.y+relpos.y*parentpos.h,
-				w: relpos.w*parentpos.w,
-				h: relpos.h*parentpos.w,
-			}
-			this.defaults['abspos'] = abspos;
+			this.setAbsPos();
 			this.img.setup(this);
 		}
   }
@@ -169,6 +165,12 @@ class Obj {
   redrawBubble(){
     this.parent.redrawBubble();
   }
+	log(msg){
+		this.logBubble(this.id+": "+msg)
+	}
+	logBubble(txt){
+		if (this.parent!=null) this.parent.logBubble(txt);
+	}
 }
 
 class Base extends Obj {
@@ -205,19 +207,19 @@ class Base extends Obj {
       callbackFailure(id);
     }
   }
-  
+	
   defaultSearch(id,callbackSuccess){
     this.applySearch(id,callbackSuccess,(id)=>{});
   }
 }
 
 class P5Base extends Base {
-  constructor(W,H){
+  constructor(){
     super({x:0,y:0,w:1,h:1});
-    this.defaults['abspos'] = {x:0,y:0,w:W,h:H};
-    this.traversal = [];
+    this._traversal = [];
     this._redrawBubble = true;
     this._context = null;
+		this._logdata = [];
   }
   
   redrawBubble(){
@@ -225,18 +227,18 @@ class P5Base extends Base {
   }
   
   computedraworder(){
-    this.traversal = [];
+    this._traversal = [];
     var drawqueue = new Queue();
     for (var obj of this.children){
       drawqueue.enqueue(obj);
     }
     while (!drawqueue.isEmpty()){
       const el = drawqueue.dequeue();
-      this.traversal.push(el);
+      this._traversal.push(el);
       for (var obj of el.children) drawqueue.enqueue(obj);
     }
   }
-  
+	
   setup(){
 		const abspos = this.get('abspos');
     createCanvas(abspos.w, abspos.h);
@@ -251,12 +253,14 @@ class P5Base extends Base {
     // build this Canvas img first
     await super.buildWrapper();
     // then build on traversal
-    for (var el of this.traversal){
-      if (el.freezer.isTreeLeaf()) await el.buildWrapper();
+    for (var el of this._traversal){
+      if (el.getFreezer().isTreeLeaf()) await el.buildWrapper();
     }
   }
   
-  async init(){
+  async init(W,H){
+		const abspos = {x:0,y:0,w:W,h:H};
+		this.set('abspos', ()=>abspos);
     this.setupWrapper();
     await this.buildWrapper();
   }
@@ -269,7 +273,7 @@ class P5Base extends Base {
     if (this._context!=null){
       if (this._redrawBubble) {
         super.draw(this._context);
-        for (var el of this.traversal){
+        for (var el of this._traversal){
           if (el.freezer.isTreeLeaf()) el.draw(this._context);
         }
         this._redrawBubble = false;
@@ -277,4 +281,12 @@ class P5Base extends Base {
       this.effects();
     }
   }
+	
+	logBubble(txt){
+		this._logdata.push(txt);
+	}
+	
+	readLog(){
+		console.log(this._logdata)
+	}
 }
