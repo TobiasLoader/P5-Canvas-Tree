@@ -1,17 +1,21 @@
 class Canvas extends P5Base {
-  constructor(w,h){
-    super(w,h);
+  constructor(W,H){
+    super(W,H);
   }
   
   setup(){
     super.setup();
-    this.addProperty('haveSearched', false);
     this.addChildren([
-      new Polygon([{x:0.2,y:0.4},{x:0.4,y:0.6},{x:0.6,y:0.1}],0.5,0.5),
-      new Text('Goodbye',0.5,0.45),
+      new Polygon([{x:0.2,y:0.4},{x:0.4,y:0.6},{x:0.6,y:0.1}],{w:0.5,h:0.5}),
+      new Text('Goodbye',0.7,0.45),
       new Text('Hello',0.35,0.2),
-      new Text('In 2 seconds something will happen...',0.15,0.7)
+      new Text('In 2 seconds something will happen...',0.15,0.7),
+      new Card('yupp',[{x:0.4,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.1}],0.4,0.7,{
+				x:0.3,y:0.3,w:0.3,h:0.3
+			})
     ]);
+    // card.img.update(1, 1);
+    // this.freeze();
   }
 
   build(img){

@@ -1,15 +1,26 @@
 class Obj {
-  constructor(rw,rh){
+  constructor({x=0,y=0,w=1,h=1}={}){
     this.id = "";
     this.parent = null;
     this.children = [];
     this.properties = {};
     this.listners = {};
-    this.buildOn = this;
+    this.freezer = new Frozen(this);
     this.img = new GraphicsImg();
-    this.rdim = {w:1,h:1};
-    if (rw!=null) this.rdim.w = rw;
-    if (rh!=null) this.rdim.h = rh;
+    this.defaults = {
+      'relpos':{
+        x:x,
+        y:y,
+        w:w,
+        h:h
+      },
+			'abspos':{
+				x:0,
+				y:0,
+				w:0,
+				h:0
+			}
+    }
   }
   setId(id){
     this.id = id;
@@ -25,7 +36,7 @@ class Obj {
   }
   addProperty(name,value){
     // for adding a new property
-    if (!(name in this.properties)) {
+    if (!(name in this.properties) && !(name in this.defaults)) {
       this.listners[name] = new Set();
       this.properties[name] = value;
     }
@@ -42,17 +53,27 @@ class Obj {
           await obj.rebuild();
         }
       }
+    } else if (name in this.defaults){
+      console.log("---- Setting a default property",this.id,name)
     } else {
       console.log("Illegal setting")
     }
   }
+	getPropertyBase(fromobj,name){
+		// if property can't be found search parents properties
+		// properties are inherited
+		if (name in this.defaults) {
+			return this.defaults[name];
+		}
+		if (name in this.properties) {
+			this.listners[name].add(fromobj);
+			return this.properties[name];
+		}
+		return null;
+	}
   getProperty(fromobj,name){
-    // if property can't be found search parents properties
-    // properties are inherited
-    if (name in this.properties) {
-      this.listners[name].add(fromobj);
-      return this.properties[name];
-    }
+		const propertyInObject = this.getPropertyBase(fromobj,name);
+		if (propertyInObject!=null) return propertyInObject;
     return this.parent.getProperty(fromobj,name);
   }
   get(name){
@@ -69,35 +90,42 @@ class Obj {
       this.addChild(obj);
     }
   }
+	getFreezer(){
+		return this.freezer;
+	}
   build(img){
     console.log("Build the Object",this.id)
   }
   async buildWrapper(){
-    if (this.id==this.buildOn.id) this.img.startbuild();
-    this.buildOn.img.resumebuild();
-    this.build(this.buildOn.img);
-    // inefficient we are building new bitmap for every
-    // node in subtree of frozen element.
-    // --> should only call once when last child element built
-    await this.buildOn.img.endbuild();
+    this.img.startbuild();
+    if (this.getFreezer().frozen){
+      for (var obj of this.getFreezer().bfstraversal){
+        obj.build(this.img);
+      }
+    } else {
+      this.build(this.img);
+    }
+    await this.img.endbuild();
   }
   async rebuild(){
     console.log("Rebuild",this.id)
     await this.buildWrapper();
     this.redrawBubble();
   }
-  freezeTo(el){
-    // this.frozen = true;
-    this.buildOn = el;
-    for (var obj of this.children){
-      obj.freezeTo(el);
-    }
-  }
+  // freezeTo(el){
+  //   // this.frozen = true;
+  //   this.buildOn = el;
+  //   for (var obj of this.children){
+  //     obj.freezeTo(el);
+  //   }
+  // }
   freeze(){
-    this.freezeTo(this);
+    this.getFreezer().freeze();
+    // this.freezeTo(this);
     // this.frozen = false;
   }
   unfreeze(){
+    this.getFreezer().unfreeze();
     // this.frozen = false;
     // this.build(canvas);
   }
@@ -105,13 +133,30 @@ class Obj {
   //   return this.frozen;
   // }
   preSetup(){
-    const parentdim = this.getProperty(this,'dim');
-    const dim = {w:this.rdim.w*parentdim.w,h:this.rdim.h*parentdim.h};
-    this.addProperty('dim',dim);
-    this.img.setup(this,0,0);
+		// console.log(this);
+    // const parentpos = this.getProperty(this,'pos');
+    // const pos = {
+    //   w:this.defaults.w*parentpos.w,
+    //   h:this.rdim.h*parentpos.h};
+    // this.addProperty('dim',dim);
+    if (this.getParent()==null) this.img.setup(this);
+		else {
+			const parentpos = this.getParent().get('abspos');
+			const relpos = this.get('relpos');
+			const abspos = {
+				x: parentpos.x+relpos.x*parentpos.w,
+				y: parentpos.y+relpos.y*parentpos.h,
+				w: relpos.w*parentpos.w,
+				h: relpos.h*parentpos.w,
+			}
+			this.defaults['abspos'] = abspos;
+			this.img.setup(this);
+		}
   }
   setup(){}
-  postSetup(){}
+  postSetup(){
+    this.getFreezer().computeTraversal();
+  }
   setupWrapper(){
     this.preSetup();
     this.setup();
@@ -127,18 +172,14 @@ class Obj {
 }
 
 class Base extends Obj {
-  constructor(){
-    super();
+  constructor(pos){
+    super(pos);
     this.setId('#');
     this.setParent(null);
   }
   
   getProperty(fromobj,name){
-    if (name in this.properties) {
-      this.listners[name].add(fromobj);
-      return this.properties[name];
-    }
-    return null;
+    return this.getPropertyBase(fromobj,name);
   }
 
   getObjectById(id){
@@ -171,11 +212,9 @@ class Base extends Obj {
 }
 
 class P5Base extends Base {
-  constructor(w,h){
-    super();
-    this.addProperty('dim',{w:w,h:h});
-    this._W = w;
-    this._H = h;
+  constructor(W,H){
+    super({x:0,y:0,w:1,h:1});
+    this.defaults['abspos'] = {x:0,y:0,w:W,h:H};
     this.traversal = [];
     this._redrawBubble = true;
     this._context = null;
@@ -199,7 +238,8 @@ class P5Base extends Base {
   }
   
   setup(){
-    createCanvas(this._W, this._H);
+		const abspos = this.get('abspos');
+    createCanvas(abspos.w, abspos.h);
     this._context = document.getElementById('defaultCanvas0').getContext('2d');
   }
   
@@ -212,7 +252,7 @@ class P5Base extends Base {
     await super.buildWrapper();
     // then build on traversal
     for (var el of this.traversal){
-      await el.buildWrapper();
+      if (el.freezer.isTreeLeaf()) await el.buildWrapper();
     }
   }
   
@@ -230,7 +270,7 @@ class P5Base extends Base {
       if (this._redrawBubble) {
         super.draw(this._context);
         for (var el of this.traversal){
-          if (el.id==el.buildOn.id) el.draw(this._context);
+          if (el.freezer.isTreeLeaf()) el.draw(this._context);
         }
         this._redrawBubble = false;
       }

@@ -1,6 +1,6 @@
 class Vertex extends Obj {
-  constructor(x,y,rw,rh){
-    super(rw,rh);
+  constructor(x,y,pos){
+    super(pos);
     this.addProperty('x', x);
     this.addProperty('y', y);
   }
@@ -11,8 +11,8 @@ class Vertex extends Obj {
 }
 
 class Text extends Obj {
-  constructor(txt,x,y,rw,rh){
-    super(rw,rh);
+  constructor(txt,x,y,pos){
+    super(pos);
     this.addProperty('txt', txt);
     this.addProperty('x', x);
     this.addProperty('y', y);
@@ -24,8 +24,8 @@ class Text extends Obj {
 }
 
 class PolygonVertex extends Obj {
-  constructor(index,rw,rh){
-    super(rw,rh);
+  constructor(index,pos){
+    super(pos);
     this.addProperty('index', index);
   }
   build(img){
@@ -36,8 +36,8 @@ class PolygonVertex extends Obj {
 }
 
 class Polygon extends Obj {
-  constructor(coords,rw,rh){
-    super(rw,rh);
+  constructor(coords,pos){
+    super(pos);
     this.addProperty('coords', coords);
   }
   
@@ -56,5 +56,25 @@ class Polygon extends Obj {
       img.vertex(coord.x, coord.y);
     }
     img.endShape(CLOSE);
+  }
+}
+
+class Card extends Obj {
+  constructor(txt,coords,x,y,pos){
+    super(pos);
+    this.addProperty('txt', txt);
+    this.addProperty('coords', coords);
+    this.addProperty('x', x);
+    this.addProperty('y', y);
+  }
+  
+  setup(){
+    this.addChild(new Text(this.get('txt'),this.get('x'),this.get('y')));
+    this.addChild(new Polygon(this.get('coords')));
+    this.freeze();
+  }
+  
+  build(img){
+    img.background(255,255,255);
   }
 }
