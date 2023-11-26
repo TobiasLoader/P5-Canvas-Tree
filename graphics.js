@@ -5,25 +5,37 @@ class GraphicsImg {
 		this.building = false;
 		this.graphics = null;
 		this.bitmap = null;
-		this.abspos = {x:0,y:0,w:100,h:100};
+		this.pos = {x:0,y:0,w:100,h:100};
+		this.relfrozen = {x:0,y:0,w:1,h:1};
   }
   // 
   // updatex(x){
-	// 	this.abspos.x = x;
+	// 	this.pos.x = x;
   // }
   // updatey(y){
-	// 	this.abspos.y = y;
+	// 	this.pos.y = y;
   // }
   // update(x,y){
 	// 	if (x!=null) this.updatex(x);
 	// 	if (y!=null) this.updatey(y);
   // }
+	
+	x(x){
+		return (x*this.relfrozen.w+this.relfrozen.x)*this.pos.w;
+	}
+	y(y){
+		return (y*this.relfrozen.h+this.relfrozen.y)*this.pos.h;
+	}
   
   startbuild(){
 		this.graphics.clear();
 		this.built = false;
 		this.building = true;
   }
+	
+	updatebuildcontext(relfrozen){
+		this.relfrozen = relfrozen;
+	}
   
   async endbuild(){
 		this.built = true;
@@ -34,19 +46,26 @@ class GraphicsImg {
   isbuilt() {
 		return this.built;
   }
+		
+	withinImg(X,Y){
+		return (X>this.pos.x && mouseX<this.pos.x+this.pos.w && Y>this.pos.y && Y<this.pos.y+this.pos.h);
+	}
   
   background(r,g,b){
 		if (this.building) this.graphics.background(r,g,b);
   }
   text(txt,x,y){
-		if (this.building) this.graphics.text(txt,x*this.abspos.w,y*this.abspos.h);
+		if (this.building) this.graphics.text(txt,this.x(x),this.y(y));
   }
   vertex(x,y){
-		if (this.building) this.graphics.vertex(x*this.abspos.w,y*this.abspos.h);
+		if (this.building) this.graphics.vertex(this.x(x),this.y(y));
   }
   point(x,y){
-		if (this.building) this.graphics.point(x*this.abspos.w,y*this.abspos.h);
+		if (this.building) this.graphics.point(this.x(x),this.y(y));
   }
+	textAlign(mode){
+		if (this.building) this.graphics.textAlign(mode);
+	}
 	
   fill(r,g,b){ this.graphics.fill(r,g,b); }
   strokeWeight(n){ this.graphics.strokeWeight(n); }
@@ -62,18 +81,18 @@ class GraphicsImg {
 		this.object = object;
 		// this.pos = this.get(object,'pos')
 		// console.log(object.id,this.pos)
-		this.abspos = this.get(object,'abspos');
-		if (this.abspos != null) this.graphics = createGraphics(this.abspos.w,this.abspos.h);
+		this.pos = this.get(object,'abspos');
+		if (this.pos != null) this.graphics = createGraphics(this.pos.w,this.pos.h);
   }
   
   draw(ctx){
 		// if (this.isbuilt()) image(this.graphics,this.x,this.y);
 		if (this.isbuilt()) ctx.drawImage(
 			this.bitmap,
-			this.abspos.x,
-			this.abspos.y,
-			this.abspos.w,
-			this.abspos.h
+			this.pos.x,
+			this.pos.y,
+			this.pos.w,
+			this.pos.h
 		);
   }
 }

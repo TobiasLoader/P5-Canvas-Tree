@@ -2,3 +2,5 @@
 - implement listeners for defaults properties
 - build positional functions such as center() etc..
 - construct larger demo with more objects
+- more custom targeting logic (eg: custom id & classes)
+- implement mouseClicked and others

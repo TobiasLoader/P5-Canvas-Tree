@@ -8,21 +8,38 @@ class Obj {
     this.freezer = new Frozen(this);
     this.img = new GraphicsImg();
     this.defaults = {
-      'relpos':{
+      relpos:{
         x:x,
         y:y,
         w:w,
         h:h
       },
-			'abspos':{
+			abspos:{
 				x:0,
 				y:0,
 				w:0,
 				h:0
 			},
-			'ratio':ratio
-    }
+			relfrozenpos:{
+				x:0,
+				y:0,
+				w:1,
+				h:1
+			},
+			ratio:ratio
+    };
+		this._internal = {
+			insetup: false,
+			templog: [],
+		}
   }
+	_getInternal(flag){
+		if (flag in this._internal) return this._internal[flag];
+		return null;
+	}
+	_setInternal(flag,func){
+		if (flag in this._internal) this._internal[flag] = func(this._internal[flag]);
+	}
   setId(id){
     this.id = id;
   }
@@ -45,7 +62,7 @@ class Obj {
   async set(name,update){
     // for writing to an existing property
 		if (name in this.defaults){
-			this.log("--- Setting a default property",this.id,name)
+			// this.log("--- Setting a default property",this.id,name)
 			this.defaults[name] = update(this.defaults[name]);
 		} else if (name in this.properties) {
 			const oldValue = JSON.stringify(this.properties[name])
@@ -53,12 +70,16 @@ class Obj {
 			if (oldValue !== JSON.stringify(newValue)){
 				this.properties[name] = newValue;
 				const rebuildlist = this.listners[name];
+				const uniquerebuilds = new Set();
 				for (var obj of rebuildlist){
+					uniquerebuilds.add(obj.getFreezer().frozenTo);
+				}
+				for (var obj of uniquerebuilds){
 					await obj.rebuild();
 				}
 			}
 		} else {
-      console.log("Illegal setting")
+			this.log('illegal set of property "'+name+'"');
     }
   }
 	getPropertyBase(fromobj,name){
@@ -84,15 +105,23 @@ class Obj {
     return this.getProperty(this,name);
   }
   addChild(obj){
-    obj.setParent(this);
-    obj.setId(this.id+'-'+(this.children.length).toString());
-    obj.setupWrapper();
-    this.children.push(obj);
+		if (this._getInternal('insetup')){
+			obj.setParent(this);
+			obj.setId(this.id+'-'+(this.children.length).toString());
+			obj.setupWrapper();
+			this.children.push(obj);
+		} else {
+			this.log('addChild "'+obj.constructor.name+'" outside of its setup method')
+		}
   }
   addChildren(objs){
-    for (var obj of objs){
-      this.addChild(obj);
-    }
+		if (this._getInternal('insetup')){
+    	for (var obj of objs){
+      	this.addChild(obj);
+    	}
+		} else {
+			this.log('addChildren outside of setup')
+		}
   }
 	getFreezer(){
 		return this.freezer;
@@ -104,6 +133,8 @@ class Obj {
     this.img.startbuild();
     if (this.getFreezer().frozen){
       for (var obj of this.getFreezer().bfstraversal){
+				console.log(obj.constructor.name,'build context',obj.defaults.relfrozenpos);
+				this.img.updatebuildcontext(obj.defaults.relfrozenpos);
         obj.build(this.img);
       }
     } else {
@@ -143,14 +174,19 @@ class Obj {
 		this.set('abspos',()=>abspos);
 	}
   preSetup(){
+		for (var msg of this._getInternal('templog')){
+			this.logBubble(this.id+': "'+this.constructor.name+'" '+msg);
+		}
     if (this.getParent()==null) this.img.setup(this);
 		else {
 			this.setAbsPos();
 			this.img.setup(this);
 		}
+		this._setInternal('insetup',()=>true)
   }
   setup(){}
   postSetup(){
+		this._setInternal('insetup',()=>false)
     this.getFreezer().computeTraversal();
   }
   setupWrapper(){
@@ -166,10 +202,17 @@ class Obj {
     this.parent.redrawBubble();
   }
 	log(msg){
-		this.logBubble(this.id+": "+msg)
+		if (this.parent!=null) this.logBubble(this.id+': "'+this.constructor.name+'" '+msg)
+		else this._setInternal('templog',(arr)=>{arr.push(msg); return arr})
 	}
 	logBubble(txt){
 		if (this.parent!=null) this.parent.logBubble(txt);
+	}
+	hover(){
+		const hovering = this.img.withinImg(mouseX,mouseY);
+		if (hovering) cursor('pointer');
+		else cursor('default');
+		return hovering;
 	}
 }
 
@@ -226,7 +269,7 @@ class P5Base extends Base {
     this._redrawBubble = true;
   }
   
-  computedraworder(){
+  computeTraversal(){
     this._traversal = [];
     var drawqueue = new Queue();
     for (var obj of this.children){
@@ -239,16 +282,17 @@ class P5Base extends Base {
     }
   }
 	
-  setup(){
+  preSetup(){
+		super.preSetup();
 		const abspos = this.get('abspos');
     createCanvas(abspos.w, abspos.h);
     this._context = document.getElementById('defaultCanvas0').getContext('2d');
   }
   
   postSetup(){
-    this.computedraworder();
+    this.computeTraversal();
   }
-  
+	
   async buildWrapper(){
     // build this Canvas img first
     await super.buildWrapper();

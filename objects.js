@@ -1,3 +1,14 @@
+class Div extends Obj {
+	constructor(arr,pos){
+		super(pos);
+		this.addProperty('divchildren', arr);
+	}
+	setup(){
+		this.addChildren(this.get('divchildren'));
+		this.freeze();
+	}
+}
+
 class Vertex extends Obj {
   constructor(x,y,pos){
     super(pos);
@@ -18,9 +29,24 @@ class Text extends Obj {
     this.addProperty('y', y);
   }
   build(img){
+		img.fill(0,0,0);
     img.textFont('Inconsolata',20);
     img.text(this.get('txt'),this.get('x'),this.get('y'));
   }
+}
+
+class InheritText extends Obj {
+	constructor(txt,x,y,pos){
+		super(pos);
+		this.addProperty('x', x);
+		this.addProperty('y', y);
+	}
+	build(img){
+		img.fill(0,0,0);
+		img.textAlign(CENTER);
+		img.textFont('Inconsolata',20);
+		img.text(this.get('txt'),this.get('x'),this.get('y'));
+	}
 }
 
 class PolygonVertex extends Obj {
@@ -69,9 +95,9 @@ class Card extends Obj {
   }
   
   setup(){
-    this.addChild(new Text(this.get('txt'),this.get('x'),this.get('y')));
-    this.addChild(new Polygon(this.get('coords')));
-    this.freeze();
+    this.addChild(new InheritText(this.get('txt'),this.get('x'),this.get('y')));
+    this.addChild(new Polygon(this.get('coords'),{x:0.3,y:0.3,w:0.7,h:0.6}));
+    // this.freeze();
   }
   
   build(img){

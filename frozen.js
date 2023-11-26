@@ -27,10 +27,18 @@ class Frozen {
 	}
 	
 	freezeChildren(to){
+		const relfrozenpos = this.object.defaults.relfrozenpos;
 		for (var obj of this.object.children){
 			obj.freezer.head = false;
 			obj.freezer.frozen = true;
 			obj.freezer.frozenTo = to;
+			const childrelpos = obj.defaults.relpos;
+			obj.defaults.relfrozenpos = {
+				x: relfrozenpos.x+childrelpos.x*relfrozenpos.w,
+				y: relfrozenpos.y+childrelpos.y*relfrozenpos.h,
+				w: relfrozenpos.w*childrelpos.w,
+				h: relfrozenpos.h*childrelpos.h,
+			}
 			obj.freezer.freezeChildren(to);
 		}
 	}
@@ -61,6 +69,7 @@ class Frozen {
 			obj.freezer.head = false;
 			obj.freezer.frozen = false;
 			obj.freezer.frozenTo = obj;
+			obj.defaults.relfrozenpos = {x:0,y:0,w:1,h:1};
 			obj.freezer.unfreezeChildren();
 		}
 	}
