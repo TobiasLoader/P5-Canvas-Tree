@@ -33,11 +33,13 @@ class Frozen {
 			obj.freezer.frozen = true;
 			obj.freezer.frozenTo = to;
 			const childrelpos = obj.defaults.relpos;
+			let absw = relfrozenpos.w*childrelpos.w;
+			let absh = relfrozenpos.h*childrelpos.h;
 			obj.defaults.relfrozenpos = {
 				x: relfrozenpos.x+childrelpos.x*relfrozenpos.w,
 				y: relfrozenpos.y+childrelpos.y*relfrozenpos.h,
-				w: relfrozenpos.w*childrelpos.w,
-				h: relfrozenpos.h*childrelpos.h,
+				w: absw,
+				h: absh,
 			}
 			obj.freezer.freezeChildren(to);
 		}

@@ -12,7 +12,7 @@ class Canvas extends P5Base {
 		]);
     this.addChildren([
       div,
-      new Card('not hovering',[{x:0.4,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.1}],0.5,0.8,{
+      new Card('not hovering',[{x:0.4,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.1}],0.25,0.8,{
 				x:0.3,y:0.3,w:0.3,h:0.3,ratio:'fixed'
 			})
     ]);

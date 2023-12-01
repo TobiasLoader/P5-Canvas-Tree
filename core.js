@@ -4,9 +4,10 @@ class Obj {
     this.parent = null;
     this.children = [];
     this.properties = {};
+    this.pointers = {};
     this.listners = {};
     this.freezer = new Frozen(this);
-    this.img = new GraphicsImg();
+    this.img = new GraphicsImg(ratio);
     this.defaults = {
       relpos:{
         x:x,
@@ -96,13 +97,37 @@ class Obj {
 		}
 		return null;
 	}
-  getProperty(fromobj,name){
+  getProperty(fromobj,name,{idmatch=false,id=""}={}){
 		const propertyInObject = this.getPropertyBase(fromobj,name);
-		if (propertyInObject!=null) return propertyInObject;
-    return this.parent.getProperty(fromobj,name);
+		if (propertyInObject!=null && (!idmatch || id==this.id)) {
+      return propertyInObject;
+    }
+    return this.parent.getProperty(fromobj,name,{idmatch:idmatch,id:id});
   }
   get(name){
-    return this.getProperty(this,name);
+    return this.getProperty(this,name,{});
+  }
+  pointer(name){
+    if (name in this.properties) return {property:name,id:this.id}
+    this.log("property "+name+" doesn't exist");
+    return null;
+  }
+  addPointer(local,pointerObj){
+    if (pointerObj!=null){
+      let name = pointerObj.property;
+      let id = pointerObj.id;
+      if (!(local in this.pointers)) this.pointers[local] = pointerObj;
+      else this.log("pointer "+local+" already exists");
+    }
+  }
+  getPointer(local){
+    if (local in this.pointers) {
+      return this.getProperty(this,this.pointers[local].property,{
+        idmatch:true,
+        id:this.pointers[local].id
+      });
+    }
+    return null;
   }
   addChild(obj){
 		if (this._getInternal('insetup')){
@@ -133,8 +158,8 @@ class Obj {
     this.img.startbuild();
     if (this.getFreezer().frozen){
       for (var obj of this.getFreezer().bfstraversal){
-				console.log(obj.constructor.name,'build context',obj.defaults.relfrozenpos);
-				this.img.updatebuildcontext(obj.defaults.relfrozenpos);
+				// console.log(obj.constructor.name,'build context',obj.defaults.relfrozenpos);
+				this.img.updatebuildcontext(obj.defaults.ratio,obj.defaults.relfrozenpos);
         obj.build(this.img);
       }
     } else {
@@ -223,8 +248,8 @@ class Base extends Obj {
     this.setParent(null);
   }
   
-  getProperty(fromobj,name){
-    return this.getPropertyBase(fromobj,name);
+  getProperty(fromobj,name,idmatching={}){
+    return this.getPropertyBase(fromobj,name,idmatching);
   }
 
   getObjectById(id){
@@ -331,6 +356,6 @@ class P5Base extends Base {
 	}
 	
 	readLog(){
-		console.log(this._logdata)
+		console.log('LOG DATA\n',this._logdata)
 	}
 }

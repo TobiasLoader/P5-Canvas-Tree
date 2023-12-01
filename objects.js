@@ -29,6 +29,7 @@ class Text extends Obj {
     this.addProperty('y', y);
   }
   build(img){
+		img.noStroke();
 		img.fill(0,0,0);
     img.textFont('Inconsolata',20);
     img.text(this.get('txt'),this.get('x'),this.get('y'));
@@ -36,16 +37,18 @@ class Text extends Obj {
 }
 
 class InheritText extends Obj {
-	constructor(txt,x,y,pos){
+	constructor(txtPoint,xPoint,yPoint,pos){
 		super(pos);
-		this.addProperty('x', x);
-		this.addProperty('y', y);
+    this.addPointer('mytxt',txtPoint);
+		this.addPointer('xtxt',xPoint);
+		this.addPointer('ytxt',yPoint);
 	}
 	build(img){
+		img.noStroke();
 		img.fill(0,0,0);
-		img.textAlign(CENTER);
+		// img.textAlign(CENTER);
 		img.textFont('Inconsolata',20);
-		img.text(this.get('txt'),this.get('x'),this.get('y'));
+		img.text(this.getPointer('mytxt'),this.getPointer('xtxt'),this.getPointer('ytxt'));
 	}
 }
 
@@ -55,6 +58,7 @@ class PolygonVertex extends Obj {
     this.addProperty('index', index);
   }
   build(img){
+		img.stroke(0,0,0);
     img.strokeWeight(10);
     const vertexcoords = this.get('coords')[this.get('index')];
     img.point(vertexcoords.x,vertexcoords.y);
@@ -75,6 +79,7 @@ class Polygon extends Obj {
   }
   
   build(img){
+		img.stroke(0,0,0);
     img.strokeWeight(1);
     img.fill(255,255,0);
     img.beginShape();
@@ -95,12 +100,12 @@ class Card extends Obj {
   }
   
   setup(){
-    this.addChild(new InheritText(this.get('txt'),this.get('x'),this.get('y')));
-    this.addChild(new Polygon(this.get('coords'),{x:0.3,y:0.3,w:0.7,h:0.6}));
+    this.addChild(new InheritText(this.pointer('txt'),this.pointer('x'),this.pointer('y')));
+    this.addChild(new Polygon(this.get('coords'),{x:0.1,y:0.3,w:0.7,h:0.6}));
     // this.freeze();
   }
   
   build(img){
-    img.background(255,255,255);
+    img.background(255,0,0,50);
   }
 }

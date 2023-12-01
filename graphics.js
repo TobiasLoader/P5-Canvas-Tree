@@ -1,5 +1,11 @@
+function canBuildWrapper(func) {
+	return function(...args) {
+		if (this.canBuild(args)) return func.apply(this, args);
+	};
+}
+
 class GraphicsImg {
-  constructor(){
+  constructor(ratio){
 		this.object = null;
 		this.built = false;
 		this.building = false;
@@ -7,24 +13,29 @@ class GraphicsImg {
 		this.bitmap = null;
 		this.pos = {x:0,y:0,w:100,h:100};
 		this.relfrozen = {x:0,y:0,w:1,h:1};
+		this.ratio = ratio;
+		// building functions
+		this.background = canBuildWrapper(this.background);
+		this.text = canBuildWrapper(this.text);
+		this.vertex = canBuildWrapper(this.vertex);
+		this.point = canBuildWrapper(this.point);
   }
-  // 
-  // updatex(x){
-	// 	this.pos.x = x;
-  // }
-  // updatey(y){
-	// 	this.pos.y = y;
-  // }
-  // update(x,y){
-	// 	if (x!=null) this.updatex(x);
-	// 	if (y!=null) this.updatey(y);
-  // }
 	
 	x(x){
 		return (x*this.relfrozen.w+this.relfrozen.x)*this.pos.w;
 	}
 	y(y){
 		return (y*this.relfrozen.h+this.relfrozen.y)*this.pos.h;
+	}
+	w(){
+		if (this.ratio=='fixed') {
+			return min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h);
+		} else return this.pos.w*this.relfrozen.w;
+	}
+	h(){
+		if (this.object.defaults.ratio=='fixed') {
+			return min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h);
+		} else return this.pos.h*this.relfrozen.h;
 	}
   
   startbuild(){
@@ -33,7 +44,8 @@ class GraphicsImg {
 		this.building = true;
   }
 	
-	updatebuildcontext(relfrozen){
+	updatebuildcontext(ratio,relfrozen){
+		this.ratio = ratio;
 		this.relfrozen = relfrozen;
 	}
   
@@ -43,31 +55,47 @@ class GraphicsImg {
 		this.bitmap = await createImageBitmap(this.graphics.elt);
   }
   
-  isbuilt() {
+	
+  isBuilt() {
 		return this.built;
   }
-		
+	canBuild(args){
+		if (!this.building) return false;
+		for (let i = 0; i < args.length; i+=1) {
+			if (args[i] === null) return false;
+		}
+		return true;
+	}
+
 	withinImg(X,Y){
 		return (X>this.pos.x && mouseX<this.pos.x+this.pos.w && Y>this.pos.y && Y<this.pos.y+this.pos.h);
 	}
   
-  background(r,g,b){
-		if (this.building) this.graphics.background(r,g,b);
+	// building functions
+	background(r,g,b){
+		this.background(r, g, b, 1);
+	}
+  background(r,g,b,a){
+		// this.graphics.background(r,g,b);
+		this.graphics.noStroke();
+		this.graphics.fill(r,g,b,a);
+		this.graphics.rect(this.x(0),this.y(0),this.w(),this.h());
   }
   text(txt,x,y){
-		if (this.building) this.graphics.text(txt,this.x(x),this.y(y));
+		this.graphics.text(txt,this.x(x),this.y(y));
   }
   vertex(x,y){
-		if (this.building) this.graphics.vertex(this.x(x),this.y(y));
+		this.graphics.vertex(this.x(x),this.y(y));
   }
   point(x,y){
-		if (this.building) this.graphics.point(this.x(x),this.y(y));
+		this.graphics.point(this.x(x),this.y(y));
   }
-	textAlign(mode){
-		if (this.building) this.graphics.textAlign(mode);
-	}
-	
+
+	// non-building functions
+	textAlign(mode){ this.graphics.textAlign(mode); }
   fill(r,g,b){ this.graphics.fill(r,g,b); }
+	noStroke(){ this.graphics.noStroke(); }
+	stroke(r,g,b){ this.graphics.stroke(r,g,b); }
   strokeWeight(n){ this.graphics.strokeWeight(n); }
   beginShape(){ this.graphics.beginShape(); }
   endShape(param){ this.graphics.endShape(param); }
@@ -87,7 +115,7 @@ class GraphicsImg {
   
   draw(ctx){
 		// if (this.isbuilt()) image(this.graphics,this.x,this.y);
-		if (this.isbuilt()) ctx.drawImage(
+		if (this.isBuilt()) ctx.drawImage(
 			this.bitmap,
 			this.pos.x,
 			this.pos.y,
