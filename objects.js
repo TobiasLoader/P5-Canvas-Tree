@@ -3,9 +3,12 @@ class Div extends Obj {
 		super(pos);
 		this.addProperty('divchildren', arr);
 	}
+  setChildren(){
+    return this.get('divchildren');
+  }
 	setup(){
-		this.addChildren(this.get('divchildren'));
 		this.freeze();
+    this.debug();
 	}
 }
 
@@ -63,6 +66,9 @@ class PolygonVertex extends Obj {
     const vertexcoords = this.get('coords')[this.get('index')];
     img.point(vertexcoords.x,vertexcoords.y);
   }
+  setup(){
+    this.setId('holdup');
+  }
 }
 
 class Polygon extends Obj {
@@ -70,12 +76,16 @@ class Polygon extends Obj {
     super(pos);
     this.addProperty('coords', coords);
   }
+
+  setChildren(){
+    let c = [];
+    for (var i=0; i<this.get('coords').length; i+=1) c.push(new PolygonVertex(i));
+    return c;
+  }
   
   setup(){
-    for (var i=0; i<this.get('coords').length; i+=1){
-      this.addChild(new PolygonVertex(i));
-    }
     this.freeze();
+    this.debug();
   }
   
   build(img){
@@ -99,10 +109,16 @@ class Card extends Obj {
     this.addProperty('y', y);
   }
   
+  setChildren(){
+    return [
+      new InheritText(this.pointer('txt'),this.pointer('x'),this.pointer('y')),
+      new Polygon(this.get('coords'),{x:0.1,y:0.3,w:0.7,h:0.6})
+    ];
+  }
+  
   setup(){
-    this.addChild(new InheritText(this.pointer('txt'),this.pointer('x'),this.pointer('y')));
-    this.addChild(new Polygon(this.get('coords'),{x:0.1,y:0.3,w:0.7,h:0.6}));
     // this.freeze();
+    this.setId('holdup');
   }
   
   build(img){
