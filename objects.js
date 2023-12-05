@@ -39,6 +39,16 @@ class Text extends Obj {
   }
 }
 
+class BgText extends Text {
+	constructor(txt,x,y,pos){
+		super(txt,x,y,pos);
+	}
+	build(img){
+		img.background(255,255,255);
+		super.build(img);
+	}
+}
+
 class InheritText extends Obj {
 	constructor(txtPoint,xPoint,yPoint,pos){
 		super(pos);
@@ -112,7 +122,7 @@ class Card extends Obj {
   setChildren(){
     return [
       new InheritText(this.pointer('txt'),this.pointer('x'),this.pointer('y')),
-      new Polygon(this.get('coords'),{x:0.1,y:0.3,w:0.7,h:0.6})
+      new Polygon(this.get('coords'),{x:0.1,y:0.1,w:0.7,h:0.5})
     ];
   }
   

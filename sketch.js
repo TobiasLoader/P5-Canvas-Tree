@@ -6,12 +6,12 @@ class Canvas extends P5Base {
   setChildren(){
     return [
       new Div([
-        new Polygon([{x:0.2,y:0.4},{x:0.4,y:0.6},{x:0.6,y:0.1}],{x:0.05,y:0,w:0.5,h:0.5}),
-        new Text('Goodbye',0.7,0.45),
+        new Polygon([{x:0.2,y:0.5},{x:0.4,y:0.8},{x:0.6,y:0.3}],{x:0.05,y:0.1,w:0.5,h:0.4}),
+        new Text('Goodbye',0.8,0.45),
         new Text('Hello',0.35,0.2),
-        new Text('In 2 seconds something will happen...',0.15,0.7)
+        new BgText('Wait 2 seconds...',0.25,0.5,{x:0.05,y:0.55,w:0.7,h:0.2})
       ]),
-      new Card('not hovering',[{x:0.4,y:0.4},{x:0.4,y:0.2},{x:0.6,y:0.1}],0.25,0.8,{
+      new Card('not hovering',[{x:0.2,y:0.7},{x:0.7,y:0.6},{x:0.6,y:0.2}],0.25,0.8,{
         x:0.3,y:0.3,w:0.3,h:0.3,ratio:'fixed'
       })
     ];

@@ -3,32 +3,9 @@ class Obj {
     this.ident = new Ident(this);
     this.parent = null;
     this.children = [];
-    this.properties = {};
-    this.pointers = {};
-    this.listners = {};
+		this.env = new Env(this,x,y,w,h,ratio);
     this.freezer = new Frozen(this);
     this.img = new GraphicsImg(ratio);
-    this.defaults = {
-      relpos:{
-        x:x,
-        y:y,
-        w:w,
-        h:h
-      },
-			abspos:{
-				x:0,
-				y:0,
-				w:0,
-				h:0
-			},
-			relfrozenpos:{
-				x:0,
-				y:0,
-				w:1,
-				h:1
-			},
-			ratio:ratio
-    };
 		this._internal = {
       populated: false,
 			insetup: false,
@@ -36,6 +13,35 @@ class Obj {
       debug: false,
 		}
   }
+	
+	// core Obj
+	setParent(parent){
+		this.parent = parent;
+	}
+	getParent(){
+		return this.parent;
+	}
+	addChild(obj){
+		if (this._getInternal('populated')==false){
+			obj.setParent(this);
+			obj.setTreeId(this.getId()+'-'+(this.children.length).toString());
+			this.children.push(obj);
+		} else {
+			this.log('addChild "'+obj.constructor.name+'" on populated element')
+		}
+	}
+	addChildren(objs){
+		if (this._getInternal('populated')==false){
+			for (var obj of objs) this.addChild(obj);
+		} else {
+			this.log('addChildren on populated element')
+		}
+	}
+	setChildren(){
+		return [];
+	}
+	
+	// internals
 	_getInternal(flag){
 		if (flag in this._internal) return this._internal[flag];
 		return null;
@@ -43,157 +49,71 @@ class Obj {
 	_setInternal(flag,func){
 		if (flag in this._internal) this._internal[flag] = func(this._internal[flag]);
 	}
+	
+	// identifiers
+	_getIdent(){
+		return this.ident;
+	}
   setTreeId(id){
-    const regex = /^[a-zA-Z0-9-]+$/;
-    if (id.length>0 && id[0]=='@' && (id.length==1 || regex.test(id.substring(1)))) {
-      this.ident.setTreeId(id);
-    } else this.log('setTreeId "'+id+'" is not a valid id string')
+    this._getIdent().setTreeId(id);
   }
   setId(id){
-    const regex = /^[a-zA-Z0-9-_]+$/;
-    if (regex.test(id)) {
-      const nameid = '#'+id;
-      this.ident.setNameId(nameid);
-      this.idBubble(nameid,this.getId());
-    }
-    else this.log('setId "'+id+'" is not a valid id string')
+		this._getIdent().setNameId(id);
   }
   getId(){
-    return this.ident.getTreeId();
+    return this._getIdent().getTreeId();
   }
-  setParent(parent){
-    this.parent = parent;
-  }
-  getParent(){
-    return this.parent;
-  }
+	idBubble(nameid,treeid){
+		if (this.parent!=null) this.parent.idBubble(nameid,treeid);
+	}
+	
+	// environment
+	_getEnv(){
+		return this.env;
+	}
   addProperty(name,value){
-    // for adding a new property
-    if (!(name in this.properties) && !(name in this.defaults)) {
-      this.listners[name] = new Set();
-      this.properties[name] = value;
-    }
+		this._getEnv().addProperty(name,value);
   }
   async set(name,update){
-    // for writing to an existing property
-		if (name in this.defaults){
-			// this.log("--- Setting a default property",this.getId(),name)
-			this.defaults[name] = update(this.defaults[name]);
-		} else if (name in this.properties) {
-			const oldValue = JSON.stringify(this.properties[name])
-			const newValue = update(this.properties[name]);
-			if (oldValue !== JSON.stringify(newValue)){
-				this.properties[name] = newValue;
-				const rebuildlist = this.listners[name];
-				const uniquerebuilds = new Set();
-				for (var obj of rebuildlist){
-					uniquerebuilds.add(obj.getFreezer().frozenTo);
-				}
-				for (var obj of uniquerebuilds){
-					await obj.rebuild();
-				}
-			}
-		} else {
-			this.log('illegal set of property "'+name+'"');
-    }
-  }
-	getPropertyBase(fromobj,name){
-		// first check defaults
-		// then check properties
-		// if property can't be found search parents properties
-		// => properties are inherited
-		if (name in this.defaults) {
-			return this.defaults[name];
-		}
-		if (name in this.properties) {
-			this.listners[name].add(fromobj);
-			return this.properties[name];
-		}
-		return null;
-	}
-  getProperty(fromobj,name,{idmatch=false,id=""}={}){
-		const propertyInObject = this.getPropertyBase(fromobj,name);
-		if (propertyInObject!=null && (!idmatch || id==this.getId())) {
-      return propertyInObject;
-    }
-    return this.parent.getProperty(fromobj,name,{idmatch:idmatch,id:id});
+		await this._getEnv().set(name,update);
   }
   get(name){
-    return this.getProperty(this,name,{});
+		return this._getEnv().get(name);
   }
   pointer(name){
-    if (name in this.properties) return {property:name,id:this.getId()}
-    this.log("property "+name+" doesn't exist");
-    return null;
+		return this._getEnv().pointer(name);
   }
   addPointer(local,pointerObj){
-    if (pointerObj!=null){
-      let name = pointerObj.property;
-      let id = pointerObj.id;
-      if (!(local in this.pointers)) this.pointers[local] = pointerObj;
-      else this.log("pointer "+local+" already exists");
-    }
+		this._getEnv().addPointer(local,pointerObj);
   }
   getPointer(local){
-    if (local in this.pointers) {
-      return this.getProperty(this,this.pointers[local].property,{
-        idmatch:true,
-        id:this.pointers[local].id
-      });
-    }
-    return null;
+    return this._getEnv().getPointer(local);
   }
-  addChild(obj){
-		if (this._getInternal('populated')==false){
-			obj.setParent(this);
-			obj.setTreeId(this.getId()+'-'+(this.children.length).toString());
-      this.children.push(obj);
-		} else {
-			this.log('addChild "'+obj.constructor.name+'" on populated element')
-		}
-  }
-  addChildren(objs){
-		if (this._getInternal('populated')==false){
-      for (var obj of objs) this.addChild(obj);
-		} else {
-			this.log('addChildren on populated element')
-		}
-  }
-	getFreezer(){
+	
+	// frozen status
+	_getFreezer(){
 		return this.freezer;
 	}
-  build(img){
-    console.log("Build the Object",this.getId())
-  }
-  buildHighlight(){
-    if (this._getInternal('debug')) this.img.highlight();
-  }
-  async buildWrapper(){
-    this.img.startbuild();
-    if (this.getFreezer().frozen){
-      for (var obj of this.getFreezer().bfstraversal){
-				// console.log(obj.constructor.name,'build context',obj.defaults.relfrozenpos);
-				this.img.updatebuildcontext(obj.defaults.ratio,obj.defaults.relfrozenpos);
-        obj.build(this.img);
-        this.buildHighlight();
-      }
-    } else {
-      this.build(this.img);
-      this.buildHighlight();
-    }
-    await this.img.endbuild();
-  }
-  async rebuild(){
-    console.log("Rebuild",this.getId())
-    await this.buildWrapper();
-    this.redrawBubble();
-  }
-  freeze(){
-    this.getFreezer().freeze();
-  }
-  unfreeze(){
-    this.getFreezer().unfreeze();
-  }
+	freeze(){
+		this._getFreezer().freeze();
+	}
+	unfreeze(){
+		this._getFreezer().unfreeze();
+	}
+	getFrozen(){
+		return this._getFreezer().getFrozen();
+	}
+	getFrozenTo(){
+		return this._getFreezer().getFrozenTo();
+	}
+	getFrozenHead(){
+		return this._getFreezer().getFrozenHead();
+	}
+	getFrozenBFS(){
+		return this._getFreezer().getFrozenBFS();
+	}
+	
+	// setup methods
 	setAbsPos(){
 		let parentpos = this.getParent().get('abspos');
 		let relpos = this.get('relpos');
@@ -214,30 +134,58 @@ class Obj {
 		}
 		this.set('abspos',()=>abspos);
 	}
-  setChildren(){
-    return [];
-  }
-  preSetup(){
+	preSetup(){
 		for (var msg of this._getInternal('templog')){
 			this.logBubble(this.getId()+': "'+this.constructor.name+'" '+msg);
 		}
-    if (this.getParent()==null) this.img.setup(this);
+		if (this.getParent()==null) this.img.setup(this);
 		else {
 			this.setAbsPos();
 			this.img.setup(this);
 		}
 		this._setInternal('insetup',()=>true)
-  }
-  setup(){}
-  postSetup(){
+	}
+	setup(){}
+	postSetup(){
 		this._setInternal('insetup',()=>false);
-    if (this.getFreezer().head) this.getFreezer().computeTraversal();
+		if (this.getFrozenHead()) this._getFreezer().computeTraversal();
+	}
+	setupWrapper(){
+		this.preSetup();
+		this.setup();
+		this.postSetup();
+	}
+	
+	// build methods
+  build(img){
+    console.log("Empty Build of the Object",this.getId())
   }
-  setupWrapper(){
-    this.preSetup();
-    this.setup();
-    this.postSetup();
+  buildHighlight(){
+    if (this._getInternal('debug')) this.img.highlight();
   }
+  async buildWrapper(){
+    this.img.startbuild();
+    if (this.getFrozen()){
+      for (var obj of this.getFrozenBFS()){
+				const objratio = obj.get('ratio');
+				const objrelfrozenpos = obj.get('relfrozenpos');
+				this.img.updatebuildcontext(objratio,objrelfrozenpos);
+        obj.build(this.img);
+        this.buildHighlight();
+      }
+    } else {
+      this.build(this.img);
+      this.buildHighlight();
+    }
+    await this.img.endbuild();
+  }
+  async rebuild(){
+    console.log("Rebuild",this.getId())
+    await this.buildWrapper();
+    this.redrawBubble();
+  }
+	  
+	// drawing methods
   draw(ctx){
     // console.log("Draw Object to Canvas",this.getId());
     this.img.draw(ctx);
@@ -245,6 +193,8 @@ class Obj {
   redrawBubble(){
     this.parent.redrawBubble();
   }
+	
+	// logging methods
 	log(msg){
 		if (this.parent!=null) this.logBubble(this.getId()+': "'+this.constructor.name+'" '+msg)
 		else this._setInternal('templog',(arr)=>{arr.push(msg); return arr})
@@ -252,6 +202,8 @@ class Obj {
 	logBubble(txt){
 		if (this.parent!=null) this.parent.logBubble(txt);
 	}
+	
+	// misc methods
 	hover(){
 		const hovering = this.img.withinImg(mouseX,mouseY);
 		if (hovering) cursor('pointer');
@@ -259,13 +211,10 @@ class Obj {
 		return hovering;
 	}
   debug(){
-    if (!this.getFreezer().frozen || this.getFreezer().head) {
+    if (!this.getFrozen() || this.getFrozenHead()) {
       this._setInternal("debug", ()=>true);
     }
-    else this.log('cannot debug as in frozen subtree');
-  }
-  idBubble(nameid,treeid){
-    if (this.parent!=null) this.parent.idBubble(nameid,treeid);
+    else this.log('cannot be debugged as it is in a frozen subtree');
   }
 }
 
@@ -274,10 +223,6 @@ class Base extends Obj {
     super(pos);
     this.setTreeId('@');
     this.setParent(null);
-  }
-  
-  getProperty(fromobj,name,idmatching={}){
-    return this.getPropertyBase(fromobj,name,idmatching);
   }
 
   getObjectById(id){
@@ -312,26 +257,26 @@ class Base extends Obj {
 class P5Base extends Base {
   constructor(){
     super({x:0,y:0,w:1,h:1});
-    this._traversal = [];
-    this._redrawBubble = true;
-    this._context = null;
-		this._logdata = [];
-    this._iddict = {};
+    this._internal["traversal"] = [];
+    this._internal["redrawBubble"] = true;
+    this._internal["context"] = null;
+		this._internal["logdata"] = [];
+    this._internal["iddict"] = {};
   }
   
   redrawBubble(){
-    this._redrawBubble = true;
+		this._setInternal("redrawBubble",()=>true);
   }
   
   computeTraversal(){
-    this._traversal = [];
+		this._setInternal("traversal",()=>[]);
     var drawqueue = new Queue();
     for (var obj of this.children){
       drawqueue.enqueue(obj);
     }
     while (!drawqueue.isEmpty()){
       const el = drawqueue.dequeue();
-      this._traversal.push(el);
+			this._setInternal("traversal",(trav)=>[...trav,el]);
       for (var obj of el.children) drawqueue.enqueue(obj);
     }
   }
@@ -340,15 +285,17 @@ class P5Base extends Base {
 		super.preSetup();
 		const abspos = this.get('abspos');
     createCanvas(abspos.w, abspos.h);
-    this._context = document.getElementById('defaultCanvas0').getContext('2d');
+		this._setInternal("context",()=>{
+			return document.getElementById('defaultCanvas0').getContext('2d');
+		});
   }
 
   async buildWrapper(){
     // build this Canvas img first
     await super.buildWrapper();
     // then build on traversal
-    for (var el of this._traversal){
-      if (el.getFreezer().isTreeLeaf()) await el.buildWrapper();
+    for (var el of this._getInternal("traversal")){
+      if (el._getFreezer().isTreeLeaf()) await el.buildWrapper();
     }
   }
   
@@ -375,7 +322,7 @@ class P5Base extends Base {
     this.populateChildren();
     this.computeTraversal();
     this.setupWrapper();
-    for (var el of this._traversal){
+    for (var el of this._getInternal("traversal")){
       el.setupWrapper();
     }
     await this.buildWrapper();
@@ -386,30 +333,36 @@ class P5Base extends Base {
   }
   
   draw(){
-    if (this._context!=null){
-      if (this._redrawBubble) {
-        super.draw(this._context);
-        for (var el of this._traversal){
-          if (el.freezer.isTreeLeaf()) el.draw(this._context);
+    if (this._getInternal("context")!=null){
+      if (this._getInternal("redrawBubble")) {
+        super.draw(this._getInternal("context"));
+        for (var el of this._getInternal("traversal")){
+          if (el._getFreezer().isTreeLeaf()) {
+						el.draw(this._getInternal("context"));
+					}
         }
-        this._redrawBubble = false;
+        this._setInternal('redrawBubble',()=>false);
       }
       this.effects();
     }
   }
 	
   log(msg){
-    this._logdata.push(this.getId()+': "'+this.constructor.name+'" '+msg);
+		this._setInternal('logdata',(ld) => [...ld,
+			this.getId()+': "'+this.constructor.name+'" '+msg
+		]);
   }
 	logBubble(txt){
-		this._logdata.push(txt);
+		this._setInternal('logdata',(ld)=>[...ld,txt]);
 	}
   
   idBubble(nameid,treeid){
-    if (!(nameid in this._iddict)) this._iddict[nameid] = treeid;
-    else {
+    if (!(nameid in this._getInternal("iddict"))) {
+			this._setInternal('iddict',(ids) => ({...ids, [nameid]:treeid}));
+    } else {
       this.applySearch(treeid,(obj)=>{
-        obj.log('nameid "'+nameid+'" already exists at "'+this._iddict[nameid]+'"');
+        obj.log('nameid "'+nameid+'" already exists at "'+this._getInternal("iddict")[nameid]+'"');
+				obj._getIdent().nullifyNameId();
       },()=>{
         this.log('treeid "'+treeid+'" does not exist and nameid "'+nameid+'" already does');
       });
@@ -417,9 +370,9 @@ class P5Base extends Base {
   }
 	
 	readLog(){
-    console.log('%c LOG DATA: '+this._logdata.length.toString()+' warnings',"color:rgb(255,255,0);")
-    for (var l of this._logdata){
-      console.log('%c    ! '+l,"color:rgb(210,188,75);");
+    console.log('%c LOG DATA: '+this._getInternal("logdata").length.toString()+' warnings',"color:rgb(255,255,0);")
+    for (var l of this._getInternal("logdata")){
+      console.log('%c   '+l,"color:rgb(210,188,75);");
     }
 	}
 }

@@ -34,7 +34,7 @@ class GraphicsImg {
 		} else return this.pos.w*this.relfrozen.w;
 	}
 	h(){
-		if (this.obj.defaults.ratio=='fixed') {
+		if (this.ratio=='fixed') {
 			return min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h);
 		} else return this.pos.h*this.relfrozen.h;
 	}
@@ -113,16 +113,10 @@ class GraphicsImg {
   beginShape(){ this.graphics.beginShape(); }
   endShape(param){ this.graphics.endShape(param); }
   textFont(name,size){ this.graphics.textFont(name,size); }
-	
-  get(object, name){
-		return object.getProperty(object,name);
-  }
   
   setup(object){
 		this.obj = object;
-		// this.pos = this.get(object,'pos')
-		// console.log(object.getId(),this.pos)
-		this.pos = this.get(object,'abspos');
+		this.pos = object.get('abspos');
 		if (this.pos != null) this.graphics = createGraphics(this.pos.w,this.pos.h);
   }
   
