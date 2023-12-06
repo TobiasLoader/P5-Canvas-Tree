@@ -1,4 +1,4 @@
-class Canvas extends P5Base {
+class Canvas extends Base {
   constructor(children){
     super(children);
   }
@@ -28,17 +28,17 @@ class Canvas extends P5Base {
   effects(){
     // effect in the draw function - using search inherited from the Base class
     if (millis()>2000 && millis()<3000){
-      this.defaultSearch('@-0-0',(obj,id)=>{
+      this.search('@-0-0',(obj,id)=>{
         obj.set('coords',(coords)=>{
           coords[2].x = 0.4;
           return coords;
         });
-        this.defaultSearch('@-0-3',(obj2,id2)=>{
+        this.search('@-0-3',(obj2,id2)=>{
           obj2.set('txt',() => "x coord of object with id: ("+id+") moved: 0.3 to 0.25");
         });
       });
     }
-		this.defaultSearch('@-1',(obj,id)=>{
+		this.search('#infocard',(obj,id)=>{
 			if (obj.hover()){
 				obj.set('txt',() => "hovering");
 			} else {

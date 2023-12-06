@@ -72,9 +72,6 @@ class PolygonVertex extends Obj {
     const vertexcoords = this.get('coords')[this.get('index')];
     img.point(vertexcoords.x,vertexcoords.y);
   }
-  setup(){
-    this.setId('holdup');
-  }
 }
 
 class Polygon extends Obj {
@@ -126,10 +123,7 @@ class Card extends Obj {
   setup(){
 		this.freeze();
     this.debug();
-    this.setId('holdup');
-		this.search('@-1-1-0',(obj,query)=>{
-			console.log('search',obj,query)
-		});
+    this.setId('#infocard');
   }
   
   build(img){

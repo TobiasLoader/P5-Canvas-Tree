@@ -47,6 +47,9 @@ class Obj {
 	}
 	
 	// internals
+	_addInternal(flag,val){
+		if (!(flag in this._internal)) this._internal[flag] = val;
+	}
 	_getInternal(flag){
 		if (flag in this._internal) return this._internal[flag];
 		return null;
@@ -238,49 +241,15 @@ class Obj {
 }
 
 class Base extends Obj {
-  constructor(pos,children){
-    super(pos,children);
-    this.setTreeId('@');
-    this.setParent(null);
-  }
-
-  getObjectById(id){
-    // id is of the type: @-0-0-0-0-0...
-    const fullpath = id.split('-')
-    if (fullpath.length==0 || fullpath[0]!='@') return {'found':false,'reason':'id of the wrong type','object':null}
-    fullpath.shift();
-    const path = fullpath.map(Number);
-    var o = this;
-    for (var p of path){
-      const next = o.children[p];
-      if (next!=undefined) o = next;
-      else return {'found':false,'reason':'not found in object tree'};
-    }
-    return {'found':true,'obj':o};
-  }
-  
-  applySearch(id,callbackSuccess,callbackFailure){
-    const search = this.getObjectById(id);
-    if (search.found){
-      callbackSuccess(search.obj,id);
-    } else {
-      callbackFailure(id);
-    }
-  }
-	
-  defaultSearch(id,callbackSuccess){
-    this.applySearch(id,callbackSuccess,(id)=>{});
-  }
-}
-
-class P5Base extends Base {
   constructor(children){
     super({x:0,y:0,w:1,h:1},children);
-    this._internal["traversal"] = [];
-    this._internal["_redrawBubble"] = true;
-    this._internal["context"] = null;
-		this._internal["logdata"] = [];
-    this._internal["iddict"] = {};
+    this.setTreeId('@');
+    this.setParent(null);
+		this._addInternal("traversal",[]);
+		this._addInternal("_redrawBubble",true);
+		this._addInternal("context",null);
+		this._addInternal("logdata",[]);
+		this._addInternal("iddict",{});
   }
   
   _redrawBubble(){
@@ -380,10 +349,10 @@ class P5Base extends Base {
     if (!(nameid in this._getInternal("iddict"))) {
 			this._setInternal('iddict',(ids) => ({...ids, [nameid]:treeid}));
     } else {
-      this.applySearch(treeid,(obj)=>{
+      this.search(treeid,(obj,query)=>{
         obj.log('nameid "'+nameid+'" already exists at "'+this._getInternal("iddict")[nameid]+'"');
 				obj._getIdent().nullifyNameId();
-      },()=>{
+      },(err,query)=>{
         this.log('treeid "'+treeid+'" does not exist and nameid "'+nameid+'" already does');
       });
     }
