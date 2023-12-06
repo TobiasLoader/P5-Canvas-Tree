@@ -52,7 +52,7 @@ class Env {
 					uniquerebuilds.add(obj.getFrozenTo());
 				}
 				for (var obj of uniquerebuilds){
-					await obj.rebuild();
+					await obj._rebuild();
 				}
 			}
 		} else {

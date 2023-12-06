@@ -1,5 +1,5 @@
 class Obj {
-  constructor({x=0,y=0,w=1,h=1,ratio='variable'}={}){
+  constructor({x=0,y=0,w=1,h=1,ratio='variable'}={},children=[]){
     this.ident = new Ident(this);
     this.parent = null;
     this.children = [];
@@ -11,28 +11,33 @@ class Obj {
 			insetup: false,
 			templog: [],
       debug: false,
+			custom: children
 		}
   }
 	
 	// core Obj
+	constructorName(){
+		return this.constructor.name;
+	}
 	setParent(parent){
 		this.parent = parent;
 	}
 	getParent(){
 		return this.parent;
 	}
-	addChild(obj){
+	_addChild(obj){
 		if (this._getInternal('populated')==false){
 			obj.setParent(this);
 			obj.setTreeId(this.getId()+'-'+(this.children.length).toString());
+			obj.addClass(obj.constructorName());
 			this.children.push(obj);
 		} else {
-			this.log('addChild "'+obj.constructor.name+'" on populated element')
+			this.log('addChild "'+obj.constructorName()+'" on populated element')
 		}
 	}
-	addChildren(objs){
+	_addChildren(objs){
 		if (this._getInternal('populated')==false){
-			for (var obj of objs) this.addChild(obj);
+			for (var obj of objs) this._addChild(obj);
 		} else {
 			this.log('addChildren on populated element')
 		}
@@ -63,8 +68,22 @@ class Obj {
   getId(){
     return this._getIdent().getTreeId();
   }
-	idBubble(nameid,treeid){
-		if (this.parent!=null) this.parent.idBubble(nameid,treeid);
+	_idBubble(nameid,treeid){
+		if (this.parent!=null) this.parent._idBubble(nameid,treeid);
+	}
+	addClass(className){
+		this._getIdent().addClass(className);
+	}
+	removeClass(className){
+		this._getIdent().removeClass(className);
+	}
+	hasClass(className){
+		return this._getIdent().hasClass(className);
+	}
+	search(query, success = (obj,query)=>{}, failure = (err,query) => {
+		this.log('search failed: '+err);
+	}){
+		return this._getIdent().search(query,success,failure);
 	}
 	
 	// environment
@@ -114,7 +133,7 @@ class Obj {
 	}
 	
 	// setup methods
-	setAbsPos(){
+	_setAbsPos(){
 		let parentpos = this.getParent().get('abspos');
 		let relpos = this.get('relpos');
 		let absx = parentpos.x+relpos.x*parentpos.w;
@@ -134,36 +153,36 @@ class Obj {
 		}
 		this.set('abspos',()=>abspos);
 	}
-	preSetup(){
+	_preSetup(){
 		for (var msg of this._getInternal('templog')){
-			this.logBubble(this.getId()+': "'+this.constructor.name+'" '+msg);
+			this._logBubble(this.getId()+': "'+this.constructorName()+'" '+msg);
 		}
 		if (this.getParent()==null) this.img.setup(this);
 		else {
-			this.setAbsPos();
+			this._setAbsPos();
 			this.img.setup(this);
 		}
 		this._setInternal('insetup',()=>true)
 	}
 	setup(){}
-	postSetup(){
+	_postSetup(){
 		this._setInternal('insetup',()=>false);
-		if (this.getFrozenHead()) this._getFreezer().computeTraversal();
+		if (this.getFrozenHead()) this._getFreezer()._computeTraversal();
 	}
-	setupWrapper(){
-		this.preSetup();
+	_setupWrapper(){
+		this._preSetup();
 		this.setup();
-		this.postSetup();
+		this._postSetup();
 	}
 	
 	// build methods
   build(img){
     console.log("Empty Build of the Object",this.getId())
   }
-  buildHighlight(){
+  _buildHighlight(){
     if (this._getInternal('debug')) this.img.highlight();
   }
-  async buildWrapper(){
+  async _buildWrapper(){
     this.img.startbuild();
     if (this.getFrozen()){
       for (var obj of this.getFrozenBFS()){
@@ -171,18 +190,18 @@ class Obj {
 				const objrelfrozenpos = obj.get('relfrozenpos');
 				this.img.updatebuildcontext(objratio,objrelfrozenpos);
         obj.build(this.img);
-        this.buildHighlight();
+        this._buildHighlight();
       }
     } else {
       this.build(this.img);
-      this.buildHighlight();
+      this._buildHighlight();
     }
     await this.img.endbuild();
   }
-  async rebuild(){
+  async _rebuild(){
     console.log("Rebuild",this.getId())
-    await this.buildWrapper();
-    this.redrawBubble();
+    await this._buildWrapper();
+    this._redrawBubble();
   }
 	  
 	// drawing methods
@@ -190,17 +209,17 @@ class Obj {
     // console.log("Draw Object to Canvas",this.getId());
     this.img.draw(ctx);
   }
-  redrawBubble(){
-    this.parent.redrawBubble();
+  _redrawBubble(){
+    this.parent._redrawBubble();
   }
 	
 	// logging methods
 	log(msg){
-		if (this.parent!=null) this.logBubble(this.getId()+': "'+this.constructor.name+'" '+msg)
+		if (this.parent!=null) this._logBubble(this.getId()+': "'+this.constructorName()+'" '+msg)
 		else this._setInternal('templog',(arr)=>{arr.push(msg); return arr})
 	}
-	logBubble(txt){
-		if (this.parent!=null) this.parent.logBubble(txt);
+	_logBubble(txt){
+		if (this.parent!=null) this.parent._logBubble(txt);
 	}
 	
 	// misc methods
@@ -219,8 +238,8 @@ class Obj {
 }
 
 class Base extends Obj {
-  constructor(pos){
-    super(pos);
+  constructor(pos,children){
+    super(pos,children);
     this.setTreeId('@');
     this.setParent(null);
   }
@@ -255,20 +274,20 @@ class Base extends Obj {
 }
 
 class P5Base extends Base {
-  constructor(){
-    super({x:0,y:0,w:1,h:1});
+  constructor(children){
+    super({x:0,y:0,w:1,h:1},children);
     this._internal["traversal"] = [];
-    this._internal["redrawBubble"] = true;
+    this._internal["_redrawBubble"] = true;
     this._internal["context"] = null;
 		this._internal["logdata"] = [];
     this._internal["iddict"] = {};
   }
   
-  redrawBubble(){
-		this._setInternal("redrawBubble",()=>true);
+  _redrawBubble(){
+		this._setInternal("_redrawBubble",()=>true);
   }
   
-  computeTraversal(){
+  _computeTraversal(){
 		this._setInternal("traversal",()=>[]);
     var drawqueue = new Queue();
     for (var obj of this.children){
@@ -281,8 +300,8 @@ class P5Base extends Base {
     }
   }
 	
-  preSetup(){
-		super.preSetup();
+  _preSetup(){
+		super._preSetup();
 		const abspos = this.get('abspos');
     createCanvas(abspos.w, abspos.h);
 		this._setInternal("context",()=>{
@@ -290,23 +309,24 @@ class P5Base extends Base {
 		});
   }
 
-  async buildWrapper(){
+  async _buildWrapper(){
     // build this Canvas img first
-    await super.buildWrapper();
+    await super._buildWrapper();
     // then build on traversal
     for (var el of this._getInternal("traversal")){
-      if (el._getFreezer().isTreeLeaf()) await el.buildWrapper();
+      if (el._getFreezer().isTreeLeaf()) await el._buildWrapper();
     }
   }
   
-  populateChildren(){
+  _populateChildren(){
     var populateQueue = new Queue();
     populateQueue.enqueue(this);
     while (!populateQueue.isEmpty()){
       const populateEl = populateQueue.dequeue();
       if (populateEl._getInternal("populated")==false) {
-        populateEl.addChildren(populateEl.setChildren());
-        populateEl._setInternal('populated',()=>true);
+        populateEl._addChildren(populateEl.setChildren());
+				populateEl._addChildren(populateEl._getInternal("custom"));
+        populateEl._setInternal("populated",()=>true);
         for (var c of populateEl.children) {
           populateQueue.enqueue(c);
         }
@@ -319,13 +339,13 @@ class P5Base extends Base {
   async init(W,H){
 		const abspos = {x:0,y:0,w:W,h:H};
 		this.set('abspos', ()=>abspos);
-    this.populateChildren();
-    this.computeTraversal();
-    this.setupWrapper();
+    this._populateChildren();
+    this._computeTraversal();
+    this._setupWrapper();
     for (var el of this._getInternal("traversal")){
-      el.setupWrapper();
+      el._setupWrapper();
     }
-    await this.buildWrapper();
+    await this._buildWrapper();
   }
   
   effects(){
@@ -334,14 +354,14 @@ class P5Base extends Base {
   
   draw(){
     if (this._getInternal("context")!=null){
-      if (this._getInternal("redrawBubble")) {
+      if (this._getInternal("_redrawBubble")) {
         super.draw(this._getInternal("context"));
         for (var el of this._getInternal("traversal")){
           if (el._getFreezer().isTreeLeaf()) {
 						el.draw(this._getInternal("context"));
 					}
         }
-        this._setInternal('redrawBubble',()=>false);
+        this._setInternal('_redrawBubble',()=>false);
       }
       this.effects();
     }
@@ -349,14 +369,14 @@ class P5Base extends Base {
 	
   log(msg){
 		this._setInternal('logdata',(ld) => [...ld,
-			this.getId()+': "'+this.constructor.name+'" '+msg
+			this.getId()+': "'+this.constructorName()+'" '+msg
 		]);
   }
-	logBubble(txt){
+	_logBubble(txt){
 		this._setInternal('logdata',(ld)=>[...ld,txt]);
 	}
   
-  idBubble(nameid,treeid){
+  _idBubble(nameid,treeid){
     if (!(nameid in this._getInternal("iddict"))) {
 			this._setInternal('iddict',(ids) => ({...ids, [nameid]:treeid}));
     } else {

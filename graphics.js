@@ -11,7 +11,10 @@ class GraphicsImg {
 		this.building = false;
 		this.graphics = null;
 		this.bitmap = null;
+		// size and position of the actual bitmap for this img on screen in pix
 		this.pos = {x:0,y:0,w:100,h:100};
+		// position relative to bitmap for each build context
+		//  - changes for each frozen child which is built
 		this.relfrozen = {x:0,y:0,w:1,h:1};
 		this.ratio = ratio;
 		// building functions
@@ -23,20 +26,20 @@ class GraphicsImg {
   }
 	
 	x(x){
-		return (x*this.relfrozen.w+this.relfrozen.x)*this.pos.w;
+		return round((x*this.relfrozen.w+this.relfrozen.x)*this.pos.w);
 	}
 	y(y){
-		return (y*this.relfrozen.h+this.relfrozen.y)*this.pos.h;
+		return round((y*this.relfrozen.h+this.relfrozen.y)*this.pos.h);
 	}
 	w(){
 		if (this.ratio=='fixed') {
-			return min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h);
-		} else return this.pos.w*this.relfrozen.w;
+			return round(min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h));
+		} else return round(this.pos.w*this.relfrozen.w);
 	}
 	h(){
 		if (this.ratio=='fixed') {
-			return min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h);
-		} else return this.pos.h*this.relfrozen.h;
+			return round(min(this.pos.w*this.relfrozen.w,this.pos.h*this.relfrozen.h));
+		} else return round(this.pos.h*this.relfrozen.h);
 	}
   
   startbuild(){
@@ -101,6 +104,10 @@ class GraphicsImg {
 		this.graphics.vertex(this.x(0)-5+this.w(),this.y(0)+5);
 		this.graphics.vertex(this.x(0)-5+this.w(),this.y(0)-5+this.h());
 		this.graphics.vertex(this.x(0)+5,this.y(0)-5+this.h());
+		// this.graphics.vertex(5,5);
+		// this.graphics.vertex(-5+this.pos.w,5);
+		// this.graphics.vertex(-5+this.pos.w,-5+this.pos.h);
+		// this.graphics.vertex(+5,-5+this.pos.h);
 		this.graphics.endShape();
 	}
 
@@ -117,17 +124,19 @@ class GraphicsImg {
   setup(object){
 		this.obj = object;
 		this.pos = object.get('abspos');
-		if (this.pos != null) this.graphics = createGraphics(this.pos.w,this.pos.h);
+		if (this.pos != null) {
+			this.graphics = createGraphics(round(this.pos.w),round(this.pos.h));
+		}
   }
   
   draw(ctx){
 		// if (this.isbuilt()) image(this.graphics,this.x,this.y);
 		if (this.isBuilt()) ctx.drawImage(
 			this.bitmap,
-			this.pos.x,
-			this.pos.y,
-			this.pos.w,
-			this.pos.h
+			round(this.pos.x),
+			round(this.pos.y),
+			round(this.pos.w),
+			round(this.pos.h)
 		);
   }
 }

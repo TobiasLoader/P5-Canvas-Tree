@@ -1,7 +1,8 @@
 - implement listeners for defaults properties
-- build positional functions such as center() etc..
+- build positional functions such as center(), padding(), margin() etc..
 - construct larger demo with more objects
 - more custom targeting logic (eg: custom id & classes) //started
 - implement mouseClicked and others
 - fix setting rebuilding multiple times if multiple sets
    - ie. batch rebuilds by some index if set in same function context
+- effects for all elements

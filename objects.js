@@ -1,20 +1,16 @@
 class Div extends Obj {
-	constructor(arr,pos){
-		super(pos);
-		this.addProperty('divchildren', arr);
+	constructor(pos,children){
+		super(pos,children);
 	}
-  setChildren(){
-    return this.get('divchildren');
-  }
 	setup(){
-		this.freeze();
+		// this.freeze();
     this.debug();
 	}
 }
 
 class Vertex extends Obj {
-  constructor(x,y,pos){
-    super(pos);
+  constructor(x,y,pos,children){
+    super(pos,children);
     this.addProperty('x', x);
     this.addProperty('y', y);
   }
@@ -25,8 +21,8 @@ class Vertex extends Obj {
 }
 
 class Text extends Obj {
-  constructor(txt,x,y,pos){
-    super(pos);
+  constructor(txt,x,y,pos,children){
+    super(pos,children);
     this.addProperty('txt', txt);
     this.addProperty('x', x);
     this.addProperty('y', y);
@@ -40,8 +36,8 @@ class Text extends Obj {
 }
 
 class BgText extends Text {
-	constructor(txt,x,y,pos){
-		super(txt,x,y,pos);
+	constructor(txt,x,y,pos,children){
+		super(txt,x,y,pos,children);
 	}
 	build(img){
 		img.background(255,255,255);
@@ -50,8 +46,8 @@ class BgText extends Text {
 }
 
 class InheritText extends Obj {
-	constructor(txtPoint,xPoint,yPoint,pos){
-		super(pos);
+	constructor(txtPoint,xPoint,yPoint,pos,children){
+		super(pos,children);
     this.addPointer('mytxt',txtPoint);
 		this.addPointer('xtxt',xPoint);
 		this.addPointer('ytxt',yPoint);
@@ -66,8 +62,8 @@ class InheritText extends Obj {
 }
 
 class PolygonVertex extends Obj {
-  constructor(index,pos){
-    super(pos);
+  constructor(index,pos,children){
+    super(pos,children);
     this.addProperty('index', index);
   }
   build(img){
@@ -82,26 +78,27 @@ class PolygonVertex extends Obj {
 }
 
 class Polygon extends Obj {
-  constructor(coords,pos){
-    super(pos);
+  constructor(coords,pos,children){
+    super(pos,children);
     this.addProperty('coords', coords);
   }
-
-  setChildren(){
-    let c = [];
-    for (var i=0; i<this.get('coords').length; i+=1) c.push(new PolygonVertex(i));
-    return c;
-  }
   
+	setChildren(){
+		let c = [];
+		for (var i=0; i<this.get('coords').length; i+=1) c.push(new PolygonVertex(i));
+		return c;
+	}
+	
   setup(){
     this.freeze();
-    this.debug();
+    // this.debug();
   }
   
   build(img){
+		img.background(255,255,255);
 		img.stroke(0,0,0);
     img.strokeWeight(1);
-    img.fill(255,255,0);
+    img.fill(83,130,201);
     img.beginShape();
     for (let coord of this.get('coords')) {
       img.vertex(coord.x, coord.y);
@@ -111,8 +108,8 @@ class Polygon extends Obj {
 }
 
 class Card extends Obj {
-  constructor(txt,coords,x,y,pos){
-    super(pos);
+  constructor(txt,coords,x,y,pos,children){
+    super(pos,children);
     this.addProperty('txt', txt);
     this.addProperty('coords', coords);
     this.addProperty('x', x);
@@ -127,8 +124,12 @@ class Card extends Obj {
   }
   
   setup(){
-    // this.freeze();
+		this.freeze();
+    this.debug();
     this.setId('holdup');
+		this.search('@-1-1-0',(obj,query)=>{
+			console.log('search',obj,query)
+		});
   }
   
   build(img){
