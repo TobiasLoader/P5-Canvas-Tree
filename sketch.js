@@ -5,14 +5,14 @@ class Canvas extends Base {
   
   setChildren(){
     return [
-			new Div({x:0.1,w:0.8,ratio:'fixed'},[
+			new Div({x:0.1,w:0.7,ratio:'fixed'},[
 				new Polygon([{x:0.2,y:0.5},{x:0.6,y:0.8},{x:0.8,y:0.3}],{x:0.05,y:0.1,w:0.3,h:0.4}),
 				new Text('Hello',0.7,0.2),
 				new Text('Goodbye',0.3,0.85),
 				new BgText('Wait 2 seconds...',0.1,0.5,{x:0.05,y:0.65,w:0.7,h:0.15})
 			]),
 			new Card('not hovering',[{x:0.2,y:0.7},{x:0.7,y:0.6},{x:0.6,y:0.2}],0.25,0.75,{
-				x:0.5,y:0.3,w:0.3,h:0.3,ratio:'fixed'
+				x:0.65,y:0.2,w:0.3,h:0.3,ratio:'fixed'
 			})
 		];
   }
@@ -46,6 +46,12 @@ class Canvas extends Base {
 			}
 		});
   }
+	
+	mouseClicked(){
+		this.search('#infocard',(obj,id)=>{
+			obj.set('x',(x) => 0.3+0.9*(0.5-x));
+		});
+	}
 }
 
 // p5 setup and draw below + instantiation of the Canvas class
@@ -60,4 +66,8 @@ async function setup() {
 
 function draw() {
   canvas.draw();
+}
+
+function mouseClicked(){
+	canvas.mouseClickedPropagate();
 }

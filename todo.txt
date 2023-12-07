@@ -5,4 +5,4 @@
 - implement mouseClicked and others
 - fix setting rebuilding multiple times if multiple sets
    - ie. batch rebuilds by some index if set in same function context
-- effects for all elements
+- effects+mouseClicked for all elements //done mouseClicked

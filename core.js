@@ -11,7 +11,8 @@ class Obj {
 			insetup: false,
 			templog: [],
       debug: false,
-			custom: children
+			custom: children,
+			noclick: false
 		}
   }
 	
@@ -231,6 +232,9 @@ class Obj {
 		if (hovering) cursor('pointer');
 		else cursor('default');
 		return hovering;
+	}	
+	mouseClicked(){
+		this._setInternal('noclick',()=>true);
 	}
   debug(){
     if (!this.getFrozen() || this.getFrozenHead()) {
@@ -304,37 +308,6 @@ class Base extends Obj {
       }
     }
   }
-  
-  async init(W,H){
-		const abspos = {x:0,y:0,w:W,h:H};
-		this.set('abspos', ()=>abspos);
-    this._populateChildren();
-    this._computeTraversal();
-    this._setupWrapper();
-    for (var el of this._getInternal("traversal")){
-      el._setupWrapper();
-    }
-    await this._buildWrapper();
-  }
-  
-  effects(){
-    // things changing dynamically
-  }
-  
-  draw(){
-    if (this._getInternal("context")!=null){
-      if (this._getInternal("_redrawBubble")) {
-        super.draw(this._getInternal("context"));
-        for (var el of this._getInternal("traversal")){
-          if (el._getFreezer().isTreeLeaf()) {
-						el.draw(this._getInternal("context"));
-					}
-        }
-        this._setInternal('_redrawBubble',()=>false);
-      }
-      this.effects();
-    }
-  }
 	
   log(msg){
 		this._setInternal('logdata',(ld) => [...ld,
@@ -363,5 +336,49 @@ class Base extends Obj {
     for (var l of this._getInternal("logdata")){
       console.log('%c   '+l,"color:rgb(210,188,75);");
     }
+	}
+	
+		
+	async init(W,H){
+		const abspos = {x:0,y:0,w:W,h:H};
+		this.set('abspos', ()=>abspos);
+		this._populateChildren();
+		this._computeTraversal();
+		this._setupWrapper();
+		for (var el of this._getInternal("traversal")){
+			el._setupWrapper();
+		}
+		await this._buildWrapper();
+	}
+	
+	effects(){
+		// things changing dynamically
+	}
+	
+	draw(){
+		if (this._getInternal("context")!=null){
+			if (this._getInternal("_redrawBubble")) {
+				super.draw(this._getInternal("context"));
+				for (var el of this._getInternal("traversal")){
+					if (el._getFreezer().isTreeLeaf()) {
+						el.draw(this._getInternal("context"));
+					}
+				}
+				this._setInternal('_redrawBubble',()=>false);
+			}
+			this.effects();
+		}
+	}
+	
+	mouseClickedPropagate(){
+		const objetcsClicked = this._getInternal("traversal").slice().reverse();
+		objetcsClicked.push(this);
+		for (var el of objetcsClicked){
+			if (el.hover()){
+				el.mouseClicked();
+				if (el._getInternal('noclick')==false) return null;
+			}
+		}
+		return null;
 	}
 }

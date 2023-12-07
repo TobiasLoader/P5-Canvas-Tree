@@ -6,6 +6,9 @@ class Div extends Obj {
 		// this.freeze();
     this.debug();
 	}
+	build(img){
+		img.background(100,200,100);
+	}
 }
 
 class Vertex extends Obj {
@@ -102,6 +105,10 @@ class Polygon extends Obj {
     }
     img.endShape(CLOSE);
   }
+	
+	mouseClicked(){
+		this.set('coords',(coords)=>coords.map((c)=>({x:c.y,y:c.x})));
+	}
 }
 
 class Card extends Obj {
@@ -127,6 +134,6 @@ class Card extends Obj {
   }
   
   build(img){
-    img.background(255,0,0,50);
+    img.background(255,100,100);
   }
 }
